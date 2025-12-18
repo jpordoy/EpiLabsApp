@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "625553438449",
+    "project_id": "epiguarddb",
+    "storage_bucket": "epiguarddb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:625553438449:android:e30c8b1cdc84caeee19b50",
+        "android_client_info": {
+          "package_name": "com.epilabs.epiguard"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "625553438449-rsdqaq6sbcmm3n3oliuk15p6tp7rnklf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.epilabs.epiguard",
+            "certificate_hash": "3772e5b31407357c426c1ba37126030fc0e2bbac"
+          }
+        },
+        {
+          "client_id": "625553438449-45l455uro558cnen06trtdnpovkkumap.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHMPDIhuSsHSx_NzsKVCxlAUY9hNM_kbo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "625553438449-45l455uro558cnen06trtdnpovkkumap.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
