@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Button
@@ -63,6 +65,8 @@ private val TextFieldPlaceholder = Color(0xFF606E77)
 private val TextPrimary = Color(0xFFDECDCD)
 private val TextSecondary = Color(0xFF8B9AA8)
 private val FacebookGreen = Color(0xFF42B72A)
+private val ErrorRed = Color(0xFFFF6B6B)
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -162,12 +166,14 @@ fun DeviceSelectionScreen(navController: NavController) {
                                 Log.e("NavigationError", "Failed to navigate to wireless_camera_detection: ${e.message}")
                             }
                         },
-                        isComingSoon = true
+                        isComingSoon = false,
+                        backgroundImageResId = R.drawable.background3  // Add your PNG here
+
                     )
                 }
             }
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Back Button
             Button(
                 onClick = {
                     try {
@@ -176,20 +182,20 @@ fun DeviceSelectionScreen(navController: NavController) {
                         Log.e("NavigationError", "Failed to navigate to dashboard: ${e.message}")
                     }
                 },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = DarkBackground,
+                    contentColor = ButtonBlue
+                ),
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, ButtonBlue),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = CardBackground
-                ),
-                shape = RoundedCornerShape(10.dp)
+                    .height(52.dp)
             ) {
-                Text(
-                    "Back to Dashboard",
-                    color = TextPrimary,
-                    fontSize = 16.sp
-                )
-            }
+                Icon(Icons.Default.Logout, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Sign Out", fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                }
         }
     }
 }
