@@ -39,7 +39,6 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -56,11 +55,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -81,6 +78,18 @@ import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.Locale
 
+// Hardcoded colors from design
+private val DarkBackground = Color(0xFF11222E)
+private val CardBackground = Color(0xFF1A2A3A)
+private val TextFieldBorder = Color(0xFF2F414F)
+private val ButtonBlue = Color(0xFF0163E1)
+private val TextFieldPlaceholder = Color(0xFF606E77)
+private val TextPrimary = Color(0xFFDECDCD)
+private val TextSecondary = Color(0xFF8B9AA8)
+private val AccentGreen = Color(0xFF4CAF50)
+private val AccentOrange = Color(0xFFFF9800)
+private val ErrorRed = Color(0xFFFF6B6B)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TestLabScreen(
@@ -92,7 +101,6 @@ fun TestLabScreen(
     val auth = FirebaseAuth.getInstance()
     val currentUser = auth.currentUser
 
-    // FIXED: Handle authentication and get userId internally
     if (currentUser == null) {
         LaunchedEffect(Unit) {
             Toast.makeText(context, "Please log in to access Test Lab", Toast.LENGTH_LONG).show()
@@ -105,7 +113,6 @@ fun TestLabScreen(
 
     val userId = currentUser.uid
 
-    // FIXED: Create ViewModel with authenticated userId
     val viewModel: VideoViewModel = viewModel(
         factory = VideoViewModel.Factory(context, userId)
     )
@@ -125,13 +132,11 @@ fun TestLabScreen(
     var showDeleteDialog by remember { mutableStateOf<VideoModel?>(null) }
     var showEditDialog by remember { mutableStateOf(false) }
 
-    // FIXED: Load data when screen starts
     LaunchedEffect(userId) {
         viewModel.loadVideos()
         viewModel.loadTestResults()
     }
 
-    // Available models
     val models = remember {
         listOf(
             ModelInfo(
@@ -144,7 +149,6 @@ fun TestLabScreen(
         )
     }
 
-    // Permission handling
     var hasStoragePermission by remember {
         mutableStateOf(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -164,7 +168,6 @@ fun TestLabScreen(
         }
     }
 
-    // Video picker launcher
     val videoPickerLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -179,7 +182,6 @@ fun TestLabScreen(
         }
     }
 
-    // Handle errors
     LaunchedEffect(error) {
         error?.let {
             Toast.makeText(context, it, Toast.LENGTH_LONG).show()
@@ -190,109 +192,48 @@ fun TestLabScreen(
     Scaffold(
         topBar = { TopBar(navController, userViewModel = userViewModel) },
         bottomBar = { BottomNav(navController) },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showEditDialog = true }) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit Profile")
-            }
-        }
+        containerColor = DarkBackground,
     ) { paddingValues ->
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
+                .background(DarkBackground)
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
             // Header Section
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.secondary
-                                    )
-                                ),
-                                shape = RoundedCornerShape(16.dp)
-                            )
-                            .padding(20.dp)
-                    ) {
-                        Column {
-                            Text(
-                                text = "Test Your Videos",
-                                style = TextStyle(
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Upload seizure videos and analyze them with AI models to determine compatibility with your epilepsy type",
-                                style = TextStyle(
-                                    fontSize = 14.sp,
-                                    color = Color.White.copy(alpha = 0.9f)
-                                )
-                            )
-                        }
-                    }
-                }
+                Text(
+                    text = "AI Test Lab",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
             }
 
             // Upload Video Section
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    colors = CardDefaults.cardColors(containerColor = CardBackground),
+                    shape = RoundedCornerShape(10.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(
-                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                        shape = RoundedCornerShape(12.dp)
-                                    )
-                            ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_upload),
-                                    contentDescription = "Upload",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .padding(12.dp)
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Upload Video",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "Select a seizure video for analysis",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
+                        Text(
+                            text = "Upload Video",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = "Select a seizure video for analysis",
+                            fontSize = 14.sp,
+                            color = TextSecondary
+                        )
 
                         Button(
                             onClick = {
@@ -307,22 +248,25 @@ fun TestLabScreen(
                                     permissionLauncher.launch(permissions)
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            ),
                             enabled = !isLoading,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = ButtonBlue,
+                                contentColor = TextPrimary
+                            ),
+                            shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             if (isLoading) {
                                 CircularProgressIndicator(
-                                    color = Color.White,
+                                    color = TextPrimary,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                             }
                             Text(
                                 text = if (isLoading) "Uploading..." else "Choose Video File",
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 16.sp
                             )
                         }
                     }
@@ -333,19 +277,18 @@ fun TestLabScreen(
             if (videos.isNotEmpty()) {
                 item {
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                        colors = CardDefaults.cardColors(containerColor = CardBackground),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
                         Column(
-                            modifier = Modifier.padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Text(
                                 text = "Select Video",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Bold
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = TextPrimary
                             )
 
                             ExposedDropdownMenuBox(
@@ -360,10 +303,12 @@ fun TestLabScreen(
                                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = videoExpanded)
                                     },
                                     colors = TextFieldDefaults.colors(
-                                        unfocusedContainerColor = MaterialTheme.colorScheme.background,
-                                        focusedContainerColor = MaterialTheme.colorScheme.background,
-                                        unfocusedIndicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                        focusedIndicatorColor = MaterialTheme.colorScheme.primary
+                                        unfocusedContainerColor = DarkBackground,
+                                        focusedContainerColor = DarkBackground,
+                                        unfocusedIndicatorColor = TextFieldBorder,
+                                        focusedIndicatorColor = ButtonBlue,
+                                        unfocusedTextColor = TextPrimary,
+                                        focusedTextColor = TextPrimary
                                     ),
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -382,13 +327,14 @@ fun TestLabScreen(
                                                 Column {
                                                     Text(
                                                         text = video.name,
-                                                        style = MaterialTheme.typography.bodyMedium,
-                                                        fontWeight = FontWeight.Medium
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.Medium,
+                                                        color = TextPrimary
                                                     )
                                                     Text(
                                                         text = "Status: ${video.status.name}",
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        fontSize = 12.sp,
+                                                        color = TextSecondary
                                                     )
                                                 }
                                             },
@@ -408,13 +354,12 @@ fun TestLabScreen(
             // Model Selection
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    colors = CardDefaults.cardColors(containerColor = CardBackground),
+                    shape = RoundedCornerShape(10.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -423,9 +368,9 @@ fun TestLabScreen(
                         ) {
                             Text(
                                 text = "Select AI Model",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Bold
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = TextPrimary
                             )
                             if (selectedModel != null) {
                                 IconButton(
@@ -434,7 +379,8 @@ fun TestLabScreen(
                                     Icon(
                                         painter = painterResource(id = R.drawable.ic_info),
                                         contentDescription = "Model Info",
-                                        tint = MaterialTheme.colorScheme.primary
+                                        tint = ButtonBlue,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
                             }
@@ -452,10 +398,12 @@ fun TestLabScreen(
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = modelExpanded)
                                 },
                                 colors = TextFieldDefaults.colors(
-                                    unfocusedContainerColor = MaterialTheme.colorScheme.background,
-                                    focusedContainerColor = MaterialTheme.colorScheme.background,
-                                    unfocusedIndicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                    focusedIndicatorColor = MaterialTheme.colorScheme.primary
+                                    unfocusedContainerColor = DarkBackground,
+                                    focusedContainerColor = DarkBackground,
+                                    unfocusedIndicatorColor = TextFieldBorder,
+                                    focusedIndicatorColor = ButtonBlue,
+                                    unfocusedTextColor = TextPrimary,
+                                    focusedTextColor = TextPrimary
                                 ),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -471,13 +419,14 @@ fun TestLabScreen(
                                             Column {
                                                 Text(
                                                     text = model.name,
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    fontWeight = FontWeight.Medium
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = TextPrimary
                                                 )
                                                 Text(
                                                     text = "Accuracy: ${(model.accuracy * 100).toInt()}%",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.tertiary
+                                                    fontSize = 12.sp,
+                                                    color = AccentGreen
                                                 )
                                             }
                                         },
@@ -497,13 +446,12 @@ fun TestLabScreen(
             if (selectedVideo != null && selectedModel != null) {
                 item {
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                        colors = CardDefaults.cardColors(containerColor = CardBackground),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
                         Column(
-                            modifier = Modifier.padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             if (isClassifying) {
                                 Column(
@@ -511,20 +459,20 @@ fun TestLabScreen(
                                 ) {
                                     Text(
                                         text = "Analyzing Video...",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontWeight = FontWeight.Bold
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = TextPrimary
                                     )
                                     LinearProgressIndicator(
-                                        progress = classificationProgress / 100f,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                        progress = { classificationProgress / 100f },
+                                        color = ButtonBlue,
+                                        trackColor = TextFieldBorder,
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                     Text(
                                         text = "$classificationProgress% complete",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 13.sp,
+                                        color = TextSecondary,
                                         textAlign = TextAlign.Center,
                                         modifier = Modifier.fillMaxWidth()
                                     )
@@ -553,8 +501,10 @@ fun TestLabScreen(
                                         }
                                     },
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.tertiary
+                                        containerColor = AccentGreen,
+                                        contentColor = TextPrimary
                                     ),
+                                    shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Icon(
@@ -565,7 +515,8 @@ fun TestLabScreen(
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         text = "Start AI Analysis",
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Normal,
+                                        fontSize = 16.sp
                                     )
                                 }
                             }
@@ -574,26 +525,15 @@ fun TestLabScreen(
                 }
             }
 
-            // Recent Videos List
+            // My Videos Section
             if (videos.isNotEmpty()) {
                 item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Text(
-                                text = "My Videos",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
+                    Text(
+                        text = "My Videos",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
+                    )
                 }
 
                 items(videos) { video ->
@@ -614,9 +554,8 @@ fun TestLabScreen(
             } else {
                 item {
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                        colors = CardDefaults.cardColors(containerColor = CardBackground),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
                         Column(
                             modifier = Modifier
@@ -628,19 +567,19 @@ fun TestLabScreen(
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_video),
                                 contentDescription = "No videos",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                tint = TextSecondary,
                                 modifier = Modifier.size(64.dp)
                             )
                             Text(
                                 text = "No Videos Yet",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.Bold
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary
                             )
                             Text(
                                 text = "Upload your first seizure video to start AI analysis",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 14.sp,
+                                color = TextSecondary,
                                 textAlign = TextAlign.Center
                             )
                         }
@@ -657,8 +596,9 @@ fun TestLabScreen(
             title = {
                 Text(
                     text = selectedModel!!.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
                 )
             },
             text = {
@@ -667,7 +607,8 @@ fun TestLabScreen(
                 ) {
                     Text(
                         text = selectedModel!!.description,
-                        style = MaterialTheme.typography.bodyMedium
+                        fontSize = 14.sp,
+                        color = TextPrimary
                     )
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -675,12 +616,14 @@ fun TestLabScreen(
                     ) {
                         Text(
                             text = "Version:",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
                         )
                         Text(
                             text = selectedModel!!.version,
-                            style = MaterialTheme.typography.bodySmall
+                            fontSize = 13.sp,
+                            color = TextSecondary
                         )
                     }
                     Row(
@@ -689,13 +632,15 @@ fun TestLabScreen(
                     ) {
                         Text(
                             text = "Accuracy:",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
                         )
                         Text(
                             text = "${(selectedModel!!.accuracy * 100).toInt()}%",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.tertiary
+                            fontSize = 13.sp,
+                            color = AccentGreen,
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
@@ -704,10 +649,10 @@ fun TestLabScreen(
                 TextButton(
                     onClick = { showModelInfo = false }
                 ) {
-                    Text("OK", color = MaterialTheme.colorScheme.primary)
+                    Text("OK", color = ButtonBlue)
                 }
             },
-            containerColor = Color.White
+            containerColor = CardBackground
         )
     }
 
@@ -718,14 +663,16 @@ fun TestLabScreen(
             title = {
                 Text(
                     text = "Delete Video",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
                 )
             },
             text = {
                 Text(
                     text = "Are you sure you want to delete ${video.name}? This action cannot be undone.",
-                    style = MaterialTheme.typography.bodyMedium
+                    fontSize = 14.sp,
+                    color = TextPrimary
                 )
             },
             confirmButton = {
@@ -741,45 +688,47 @@ fun TestLabScreen(
                         showDeleteDialog = null
                     }
                 ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text("Delete", color = Color(0xFFFF6B6B))
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showDeleteDialog = null }
                 ) {
-                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Cancel", color = TextSecondary)
                 }
             },
-            containerColor = Color.White
+            containerColor = CardBackground
         )
     }
 
-    // Edit Profile Dialog Placeholder
+    // Edit Profile Dialog
     if (showEditDialog) {
         AlertDialog(
             onDismissRequest = { showEditDialog = false },
             title = {
                 Text(
                     text = "Edit Profile",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
                 )
             },
             text = {
                 Text(
                     text = "Profile editing functionality will be implemented here.",
-                    style = MaterialTheme.typography.bodyMedium
+                    fontSize = 14.sp,
+                    color = TextPrimary
                 )
             },
             confirmButton = {
                 TextButton(
                     onClick = { showEditDialog = false }
                 ) {
-                    Text("OK", color = MaterialTheme.colorScheme.primary)
+                    Text("OK", color = ButtonBlue)
                 }
             },
-            containerColor = Color.White
+            containerColor = CardBackground
         )
     }
 }
@@ -795,8 +744,8 @@ fun VideoItemCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        colors = CardDefaults.cardColors(containerColor = CardBackground),
+        shape = RoundedCornerShape(10.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -810,14 +759,19 @@ fun VideoItemCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = video.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TextPrimary
                     )
                     Text(
-                        text = "Uploaded: ${SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(video.createdAt)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "Uploaded: ${
+                            SimpleDateFormat(
+                                "MMM dd, yyyy",
+                                Locale.getDefault()
+                            ).format(video.createdAt)
+                        }",
+                        fontSize = 13.sp,
+                        color = TextSecondary
                     )
                 }
 
@@ -825,26 +779,27 @@ fun VideoItemCard(
                     modifier = Modifier
                         .background(
                             color = when (video.status) {
-                                VideoModel.VideoStatus.UPLOADED -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                VideoModel.VideoStatus.PROCESSING -> Color(0xFFFFA726).copy(alpha = 0.1f)
-                                VideoModel.VideoStatus.ANALYZED -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
-                                VideoModel.VideoStatus.ERROR -> MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
-                                else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)
+                                VideoModel.VideoStatus.UPLOADED -> ButtonBlue.copy(alpha = 0.2f)
+                                VideoModel.VideoStatus.PROCESSING -> AccentOrange.copy(alpha = 0.2f)
+                                VideoModel.VideoStatus.ANALYZED -> AccentGreen.copy(alpha = 0.2f)
+                                VideoModel.VideoStatus.ERROR -> Color(0xFFFF6B6B).copy(alpha = 0.2f)
+                                else -> TextFieldBorder.copy(alpha = 0.2f)
                             },
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(8.dp)
                         )
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = video.status.name,
-                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 12.sp,
                         color = when (video.status) {
-                            VideoModel.VideoStatus.UPLOADED -> MaterialTheme.colorScheme.primary
-                            VideoModel.VideoStatus.PROCESSING -> Color(0xFFFFA726)
-                            VideoModel.VideoStatus.ANALYZED -> MaterialTheme.colorScheme.tertiary
-                            VideoModel.VideoStatus.ERROR -> MaterialTheme.colorScheme.error
-                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            VideoModel.VideoStatus.UPLOADED -> ButtonBlue
+                            VideoModel.VideoStatus.PROCESSING -> AccentOrange
+                            VideoModel.VideoStatus.ANALYZED -> AccentGreen
+                            VideoModel.VideoStatus.ERROR -> Color(0xFFFF6B6B)
+                            else -> TextSecondary
                         },
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
@@ -855,8 +810,8 @@ fun VideoItemCard(
                 ) {
                     Text(
                         text = "Analysis Results:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 13.sp,
+                        color = TextSecondary,
                         fontWeight = FontWeight.Medium
                     )
                     testResults.take(2).forEach { result ->
@@ -867,8 +822,8 @@ fun VideoItemCard(
                         ) {
                             Text(
                                 text = result.modelName,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface
+                                fontSize = 13.sp,
+                                color = TextPrimary
                             )
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -876,17 +831,20 @@ fun VideoItemCard(
                             ) {
                                 Text(
                                     text = "${(result.overallConfidence * 100).toInt()}%",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = if (result.seizureDetected) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
+                                    fontSize = 13.sp,
+                                    color = if (result.seizureDetected) Color(0xFFFF6B6B) else AccentGreen,
                                     fontWeight = FontWeight.Bold
                                 )
                                 OutlinedButton(
                                     onClick = { onViewResultsClick(result.id) },
-                                    modifier = Modifier.height(32.dp)
+                                    modifier = Modifier.height(32.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = ButtonBlue
+                                    )
                                 ) {
                                     Text(
                                         text = "View",
-                                        style = MaterialTheme.typography.labelSmall
+                                        fontSize = 12.sp
                                     )
                                 }
                             }
@@ -901,7 +859,10 @@ fun VideoItemCard(
             ) {
                 OutlinedButton(
                     onClick = onPlayClick,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = ButtonBlue
+                    )
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_play),
@@ -918,7 +879,7 @@ fun VideoItemCard(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_delete),
                         contentDescription = "Delete",
-                        tint = MaterialTheme.colorScheme.error
+                        tint = ErrorRed
                     )
                 }
             }

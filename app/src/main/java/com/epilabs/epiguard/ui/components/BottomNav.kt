@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,6 +25,7 @@ private val ButtonBlue = Color(0xFF0163E1)
 private val TextFieldPlaceholder = Color(0xFF606E77)
 private val TextPrimary = Color(0xFFDECDCD)
 private val TextSecondary = Color(0xFF8B9AA8)
+private val ButtonTextBlue = Color(0xFF0C5AC7)
 private val AccentGreen = Color(0xFF4CAF50)
 private val AccentOrange = Color(0xFFFF9800)
 private val AccentPurple = Color(0xFF9C27B0)
@@ -54,15 +56,22 @@ fun BottomNav(navController: NavController) {
                 Icon(
                     Icons.Default.Home,
                     contentDescription = "Home",
-                    tint = TextFieldPlaceholder
+                    tint = if (currentRoute == Destinations.Dashboard.route) ButtonTextBlue else TextFieldPlaceholder
                 )
             },
             label = {
                 Text(
                     "Home",
-                    color = TextFieldPlaceholder
+                    color = if (currentRoute == Destinations.Dashboard.route) ButtonTextBlue else TextFieldPlaceholder
                 )
-            }
+            },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = ButtonTextBlue,
+                selectedTextColor = ButtonTextBlue,
+                unselectedIconColor = TextFieldPlaceholder,
+                unselectedTextColor = TextFieldPlaceholder,
+                indicatorColor = Color.Transparent
+            )
         )
 
         NavigationBarItem(
@@ -80,15 +89,22 @@ fun BottomNav(navController: NavController) {
                 Icon(
                     Icons.Default.Visibility,
                     contentDescription = "Detection",
-                    tint = TextFieldPlaceholder
+                    tint = if (currentRoute == Destinations.DeviceSelection.route) ButtonTextBlue else TextFieldPlaceholder
                 )
             },
             label = {
                 Text(
                     "Detection",
-                    color = TextFieldPlaceholder
+                    color = if (currentRoute == Destinations.DeviceSelection.route) ButtonTextBlue else TextFieldPlaceholder
                 )
-            }
+            },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = ButtonTextBlue,
+                selectedTextColor = ButtonTextBlue,
+                unselectedIconColor = TextFieldPlaceholder,
+                unselectedTextColor = TextFieldPlaceholder,
+                indicatorColor = Color.Transparent
+            )
         )
 
         NavigationBarItem(
@@ -106,15 +122,22 @@ fun BottomNav(navController: NavController) {
                 Icon(
                     Icons.Default.Contacts,
                     contentDescription = "Contacts",
-                    tint = TextFieldPlaceholder
+                    tint = if (currentRoute == Destinations.Contacts.route) ButtonTextBlue else TextFieldPlaceholder
                 )
             },
             label = {
                 Text(
                     "Contacts",
-                    color = TextFieldPlaceholder
+                    color = if (currentRoute == Destinations.Contacts.route) ButtonTextBlue else TextFieldPlaceholder
                 )
-            }
+            },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = ButtonTextBlue,
+                selectedTextColor = ButtonTextBlue,
+                unselectedIconColor = TextFieldPlaceholder,
+                unselectedTextColor = TextFieldPlaceholder,
+                indicatorColor = Color.Transparent
+            )
         )
 
         NavigationBarItem(
@@ -132,15 +155,22 @@ fun BottomNav(navController: NavController) {
                 Icon(
                     Icons.Default.Settings,
                     contentDescription = "Settings",
-                    tint = TextFieldPlaceholder
+                    tint = if (currentRoute == Destinations.Settings.route) ButtonTextBlue else TextFieldPlaceholder
                 )
             },
             label = {
                 Text(
                     "Settings",
-                    color = TextFieldPlaceholder
+                    color = if (currentRoute == Destinations.Settings.route) ButtonTextBlue else TextFieldPlaceholder
                 )
-            }
+            },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = ButtonTextBlue,
+                selectedTextColor = ButtonTextBlue,
+                unselectedIconColor = TextFieldPlaceholder,
+                unselectedTextColor = TextFieldPlaceholder,
+                indicatorColor = Color.Transparent
+            )
         )
     }
 }

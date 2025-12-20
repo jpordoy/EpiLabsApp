@@ -1,6 +1,7 @@
 // Updated TestResultsScreen.kt
 package com.epilabs.epiguard.ui.screens.testlab
 
+import android.annotation.SuppressLint
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -22,7 +23,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -53,6 +53,17 @@ import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.Locale
 
+// Hardcoded colors from design
+private val DarkBackground = Color(0xFF11222E)
+private val CardBackground = Color(0xFF1A2A3A)
+private val TextFieldBorder = Color(0xFF2F414F)
+private val ButtonBlue = Color(0xFF0163E1)
+private val TextFieldPlaceholder = Color(0xFF606E77)
+private val TextPrimary = Color(0xFFDECDCD)
+private val TextSecondary = Color(0xFF8B9AA8)
+private val ErrorRed = Color(0xFFFF6B6B)
+private val SuccessGreen = Color(0xFF4CAF50)
+
 @Composable
 fun TestResultsScreen(
     resultId: String,
@@ -64,7 +75,6 @@ fun TestResultsScreen(
     val auth = FirebaseAuth.getInstance()
     val currentUser = auth.currentUser
 
-    // FIXED: Handle authentication properly
     if (currentUser == null) {
         LaunchedEffect(Unit) {
             Toast.makeText(context, "Please log in to access test results", Toast.LENGTH_LONG).show()
@@ -82,7 +92,6 @@ fun TestResultsScreen(
 
     val testResults by viewModel.testResults.collectAsState()
 
-    // FIXED: Load test results when screen starts
     LaunchedEffect(userId) {
         viewModel.loadTestResults()
     }
@@ -90,13 +99,12 @@ fun TestResultsScreen(
     val testResult = testResults.find { it.id == resultId }
 
     if (testResult == null) {
-        // Show loading if test results are still loading
         if (testResults.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = ButtonBlue)
             }
             return
         }
@@ -110,18 +118,19 @@ fun TestResultsScreen(
 
     Scaffold(
         topBar = { TopBar(navController, userViewModel = userViewModel) },
-        bottomBar = { BottomNav(navController) }
+        bottomBar = { BottomNav(navController) },
+        containerColor = DarkBackground
     ) { paddingValues ->
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
+                .background(DarkBackground)
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp)
-                .background(MaterialTheme.colorScheme.background),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
-            // Header Card
+            // Header Card - Keep gradient as is
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -147,7 +156,7 @@ fun TestResultsScreen(
                                         )
                                     )
                                 },
-                                shape = RoundedCornerShape(16.dp)
+                                shape = RoundedCornerShape(10.dp)
                             )
                             .padding(20.dp)
                     ) {
@@ -157,7 +166,7 @@ fun TestResultsScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Surface(
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = RoundedCornerShape(8.dp),
                                     color = Color.White.copy(alpha = 0.2f),
                                     modifier = Modifier.size(48.dp)
                                 ) {
@@ -176,13 +185,13 @@ fun TestResultsScreen(
                                     Text(
                                         text = if (testResult.seizureDetected) "Seizure Detected" else "No Seizure Detected",
                                         color = Color.White,
-                                        fontSize = 20.sp,
+                                        fontSize = 18.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
                                         text = "Overall Confidence: ${(testResult.overallConfidence * 100).toInt()}%",
                                         color = Color.White.copy(alpha = 0.9f),
-                                        fontSize = 14.sp
+                                        fontSize = 13.sp
                                     )
                                 }
                             }
@@ -206,17 +215,17 @@ fun TestResultsScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    colors = CardDefaults.cardColors(containerColor = CardBackground),
+                    shape = RoundedCornerShape(10.dp)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
                             text = "Model Analysis",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextPrimary
                         )
                         Spacer(modifier = Modifier.height(12.dp))
 
@@ -226,14 +235,14 @@ fun TestResultsScreen(
                         ) {
                             Text(
                                 text = "Model Used:",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                fontSize = 13.sp,
+                                color = TextSecondary
                             )
                             Text(
                                 text = testResult.modelName,
-                                style = MaterialTheme.typography.bodyMedium,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = TextPrimary
                             )
                         }
 
@@ -245,14 +254,14 @@ fun TestResultsScreen(
                         ) {
                             Text(
                                 text = "Predictions Count:",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                fontSize = 13.sp,
+                                color = TextSecondary
                             )
                             Text(
                                 text = "${testResult.predictions.size}",
-                                style = MaterialTheme.typography.bodyMedium,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = TextPrimary
                             )
                         }
 
@@ -262,14 +271,14 @@ fun TestResultsScreen(
                             Column {
                                 Text(
                                     text = "Notes:",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    fontSize = 13.sp,
+                                    color = TextSecondary
                                 )
                                 Text(
                                     text = testResult.notes,
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                    color = TextPrimary,
                                     modifier = Modifier.padding(top = 4.dp)
                                 )
                             }
@@ -283,17 +292,17 @@ fun TestResultsScreen(
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        colors = CardDefaults.cardColors(containerColor = CardBackground),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp)
                         ) {
                             Text(
                                 text = "Detailed Predictions",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary
                             )
                             Spacer(modifier = Modifier.height(12.dp))
 
@@ -305,8 +314,8 @@ fun TestResultsScreen(
                             if (testResult.predictions.size > 5) {
                                 Text(
                                     text = "... and ${testResult.predictions.size - 5} more predictions",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                    fontSize = 12.sp,
+                                    color = TextSecondary,
                                     modifier = Modifier.padding(top = 8.dp)
                                 )
                             }
@@ -327,7 +336,7 @@ fun TestResultsScreen(
                         },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.primary
+                            contentColor = ButtonBlue
                         )
                     ) {
                         Text("View Video")
@@ -339,8 +348,10 @@ fun TestResultsScreen(
                         },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
+                            containerColor = ButtonBlue,
+                            contentColor = TextPrimary
+                        ),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
                         Text("Back to Test Lab")
                     }
@@ -363,30 +374,31 @@ private fun PredictionItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = formatTimestamp(prediction.timestamp),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                fontSize = 12.sp,
+                color = TextSecondary
             )
             Text(
                 text = prediction.predictedLabel,
-                style = MaterialTheme.typography.bodyMedium,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = if (prediction.predictedLabel.contains("seizure", ignoreCase = true)) {
-                    Color(0xFFEF4444)
+                    ErrorRed
                 } else {
-                    Color(0xFF10B981)
+                    SuccessGreen
                 }
             )
         }
 
         Text(
             text = "${(prediction.confidence * 100).toInt()}%",
-            style = MaterialTheme.typography.bodyMedium,
+            fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
+            color = ButtonBlue
         )
     }
 }
 
+@SuppressLint("DefaultLocale")
 private fun formatTimestamp(timestampMs: Long): String {
     val totalSeconds = timestampMs / 1000
     val minutes = totalSeconds / 60

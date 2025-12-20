@@ -1,4 +1,3 @@
-// Updated VideoPlayerScreen.kt
 package com.epilabs.epiguard.ui.screens.testlab
 
 import android.net.Uri
@@ -8,11 +7,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
@@ -55,6 +53,14 @@ import kotlinx.coroutines.launch
 import java.io.File
 import kotlin.math.abs
 
+// Hardcoded colors from design
+private val DarkBackground = Color(0xFF11222E)
+private val CardBackground = Color(0xFF1A2A3A)
+private val ButtonBlue = Color(0xFF0163E1)
+private val TextPrimary = Color(0xFFDECDCD)
+private val ErrorRed = Color(0xFFFF6B6B)
+private val SuccessGreen = Color(0xFF4CAF50)
+
 @OptIn(UnstableApi::class)
 @Composable
 fun VideoPlayerScreen(
@@ -69,7 +75,6 @@ fun VideoPlayerScreen(
     val auth = FirebaseAuth.getInstance()
     val currentUser = auth.currentUser
 
-    // FIXED: Check if user is authenticated
     if (currentUser == null) {
         LaunchedEffect(Unit) {
             Toast.makeText(context, "Please log in to access videos", Toast.LENGTH_LONG).show()
@@ -88,7 +93,6 @@ fun VideoPlayerScreen(
     val videos by viewModel.videos.collectAsState()
     val testResults by viewModel.testResults.collectAsState()
 
-    // FIXED: Load data when screen starts
     LaunchedEffect(userId) {
         viewModel.loadVideos()
         viewModel.loadTestResults()
@@ -106,13 +110,12 @@ fun VideoPlayerScreen(
     var currentPrediction by remember { mutableStateOf<VideoPredictionResult?>(null) }
 
     if (video == null) {
-        // Show loading if videos are still loading
         if (videos.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = ButtonBlue)
             }
             return
         }
@@ -124,7 +127,6 @@ fun VideoPlayerScreen(
         return
     }
 
-    // Create ExoPlayer
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
             val videoFile = File(video.localPath)
@@ -138,7 +140,6 @@ fun VideoPlayerScreen(
         }
     }
 
-    // Handle lifecycle events
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -162,37 +163,35 @@ fun VideoPlayerScreen(
         }
     }
 
-    // Update current prediction based on playback position
     LaunchedEffect(videoTestResults) {
         if (videoTestResults.isNotEmpty()) {
             while (true) {
                 currentPosition = exoPlayer.currentPosition
 
-                // Find the closest prediction to current playback position
                 val allPredictions = videoTestResults.flatMap { it.predictions }
                 val prediction = allPredictions.minByOrNull { result ->
                     abs(result.timestamp - currentPosition)
                 }?.takeIf { result ->
-                    abs(result.timestamp - currentPosition) <= 3000L // Within 3 seconds
+                    abs(result.timestamp - currentPosition) <= 3000L
                 }
 
                 currentPrediction = prediction
-                delay(100) // Update every 100ms
+                delay(100)
             }
         }
     }
 
     Scaffold(
         topBar = { TopBar(navController, userViewModel = userViewModel) },
-        bottomBar = { BottomNav(navController) }
+        bottomBar = { BottomNav(navController) },
+        containerColor = DarkBackground
     ) { paddingValues ->
         Box(
             modifier = modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color.Black)
+                .background(DarkBackground)
         ) {
-            // Video Player
             AndroidView(
                 factory = { ctx ->
                     PlayerView(ctx).apply {
@@ -213,60 +212,58 @@ fun VideoPlayerScreen(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(16.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            if (prediction.predictedLabel.contains("seizure", ignoreCase = true)) {
-                                Color.Red.copy(alpha = 0.9f)
-                            } else {
-                                Color.Green.copy(alpha = 0.9f)
-                            }
-                        )
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(CardBackground)
                         .padding(12.dp)
                 ) {
                     Column {
                         Text(
                             text = "AI Detection",
-                            color = Color.White,
-                            style = MaterialTheme.typography.labelSmall,
+                            color = ButtonBlue,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = prediction.predictedLabel,
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (prediction.predictedLabel.contains("seizure", ignoreCase = true)) {
+                                ErrorRed
+                            } else {
+                                SuccessGreen
+                            },
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = "Confidence: ${"%.1f".format(prediction.confidence * 100)}%",
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodySmall
+                            color = TextPrimary,
+                            fontSize = 12.sp
                         )
                     }
                 }
             }
 
-            // Video Info Overlay (Bottom)
+            // Video Info Overlay
             if (videoTestResults.isNotEmpty()) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(16.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color.Black.copy(alpha = 0.7f))
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(CardBackground)
                         .padding(12.dp)
                 ) {
                     Column {
                         Text(
                             text = "Analysis Available",
-                            color = Color.White,
-                            style = MaterialTheme.typography.labelSmall,
+                            color = ButtonBlue,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
                         videoTestResults.forEach { result ->
                             Text(
                                 text = "${result.modelName}: ${if (result.seizureDetected) "Seizure Detected" else "No Seizure"}",
-                                color = if (result.seizureDetected) Color.Red else Color.Green,
-                                style = MaterialTheme.typography.bodySmall
+                                color = if (result.seizureDetected) ErrorRed else SuccessGreen,
+                                fontSize = 12.sp
                             )
                         }
                     }

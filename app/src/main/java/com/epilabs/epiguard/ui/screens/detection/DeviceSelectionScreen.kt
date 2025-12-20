@@ -2,6 +2,7 @@ package com.epilabs.epiguard.ui.screens.detection
 
 import android.app.Activity
 import android.util.Log
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,7 +38,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -45,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.epilabs.epiguard.R
 import com.epilabs.epiguard.ui.components.BottomNav
 import com.epilabs.epiguard.ui.components.TopBar
 import com.epilabs.epiguard.ui.nav.Destinations
@@ -140,7 +144,9 @@ fun DeviceSelectionScreen(navController: NavController) {
                             } catch (e: IllegalArgumentException) {
                                 Log.e("NavigationError", "Failed to navigate to seizure_detection: ${e.message}")
                             }
-                        }
+                        } ,
+                        backgroundImageResId = R.drawable.panel_background1  // Add your PNG here
+
                     )
                 }
 
@@ -195,7 +201,8 @@ private fun DeviceOptionCard(
     description: String,
     onClick: () -> Unit,
     isComingSoon: Boolean = false,
-    isRecommended: Boolean = false
+    isRecommended: Boolean = false,
+    backgroundImageResId: Int? = null
 ) {
     Card(
         modifier = Modifier
@@ -211,101 +218,119 @@ private fun DeviceOptionCard(
         ),
         shape = RoundedCornerShape(10.dp)
     ) {
-        Column {
-            // Recommended badge
-            if (isRecommended) {
+        Box {
+            // Background Image
+            if (backgroundImageResId != null) {
+                Image(
+                    painter = painterResource(id = backgroundImageResId),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                // Optional: Dark overlay for readability
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .background(FacebookGreen)
-                        .padding(vertical = 4.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "RECOMMENDED",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
+                        .fillMaxSize()
+                        .background(CardBackground.copy(alpha = 0.6f))
+                )
             }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Icon
-                Box(
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            when {
-                                isRecommended -> FacebookGreen
-                                isComingSoon -> TextFieldBorder
-                                else -> ButtonBlue
-                            }
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(30.dp),
-                        tint = Color.White
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                // Text Content
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
+            Column {
+                // Recommended badge
+                if (isRecommended) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(FacebookGreen)
+                            .padding(vertical = 4.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = title,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (isComingSoon) TextSecondary else TextPrimary
+                            text = "RECOMMENDED",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
                         )
-
-                        if (isComingSoon) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Coming Soon",
-                                fontSize = 12.sp,
-                                color = ButtonBlue,
-                                modifier = Modifier
-                                    .background(
-                                        ButtonBlue.copy(alpha = 0.2f),
-                                        RoundedCornerShape(4.dp)
-                                    )
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
                     }
-
-                    Text(
-                        text = description,
-                        fontSize = 14.sp,
-                        color = TextSecondary,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
                 }
 
-                // Arrow Icon
-                if (!isComingSoon) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowForward,
-                        contentDescription = "Go to option",
-                        tint = TextSecondary,
-                        modifier = Modifier.size(24.dp)
-                    )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Icon
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                when {
+                                    isRecommended -> FacebookGreen
+                                    isComingSoon -> TextFieldBorder
+                                    else -> ButtonBlue
+                                }
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(30.dp),
+                            tint = Color.White
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // Text Content
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = title,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isComingSoon) TextSecondary else TextPrimary
+                            )
+
+                            if (isComingSoon) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Coming Soon",
+                                    fontSize = 12.sp,
+                                    color = ButtonBlue,
+                                    modifier = Modifier
+                                        .background(
+                                            ButtonBlue.copy(alpha = 0.2f),
+                                            RoundedCornerShape(4.dp)
+                                        )
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = description,
+                            fontSize = 14.sp,
+                            color = TextSecondary,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+
+                    // Arrow Icon
+                    if (!isComingSoon) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowForward,
+                            contentDescription = "Go to option",
+                            tint = TextSecondary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
             }
         }
