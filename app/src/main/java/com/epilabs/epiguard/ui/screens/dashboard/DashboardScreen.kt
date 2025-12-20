@@ -1,42 +1,18 @@
 package com.epilabs.epiguard.ui.screens.dashboard
 
 import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContactPhone
-import androidx.compose.material.icons.filled.Contacts
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Science
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -46,23 +22,38 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.epilabs.epiguard.EpiGuardApp
 import com.epilabs.epiguard.R
 import com.epilabs.epiguard.ui.components.BottomNav
 import com.epilabs.epiguard.ui.components.TopBar
 import com.epilabs.epiguard.ui.nav.Destinations
-import com.epilabs.epiguard.ui.theme.EpiGuardTheme
 import com.epilabs.epiguard.ui.viewmodels.NotificationViewModel
 import com.epilabs.epiguard.ui.viewmodels.UserViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
+
+// Hardcoded colors from design
+private val DarkBackground = Color(0xFF11222E)
+private val TextFieldBorder = Color(0xFF2F414F)
+private val ButtonBlue = Color(0xFF0163E1)
+private val TextFieldPlaceholder = Color(0xFF606E77)
+private val TextPrimary = Color(0xFFDECDCD)
+private val TextSecondary = Color(0xFF8B9AA8)
+private val AccentGreen = Color(0xFF4CAF50)
+private val AccentOrange = Color(0xFFFF9800)
+private val AccentPurple = Color(0xFF9C27B0)
+private val UnreadIndicator = Color(0xFF0163E1)
 
 @Composable
 fun DashboardScreen(
@@ -74,114 +65,160 @@ fun DashboardScreen(
     val notifications by notificationViewModel.notifications.collectAsState()
     val unreadCount by notificationViewModel.unreadCount.collectAsState()
 
-    Scaffold(
-        topBar = { TopBar(navController, showBackButton = false, userViewModel) },
-        bottomBar = { BottomNav(navController) }
-    ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item {
-                // Welcome message
-                Column {
-                    Text(
-                        text = "Welcome back,",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = user?.firstName ?: "User",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DarkBackground)
+    ) {
+        // Background image overlay
+        Image(
+            painter = painterResource(id = R.drawable.bg_23),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+            alpha = 0.3f
+        )
 
-            item {
-                // Quick actions
-                Text(
-                    text = "Quick Actions",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    QuickActionCard(
-                        title = "Start Detection",
-                        icon = Icons.Default.Visibility,
-                        backgroundColor = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        navController.navigate(Destinations.SeizureDetection.route)
-                    }
-
-                    QuickActionCard(
-                        title = "Contacts",
-                        icon = Icons.Default.ContactPhone,
-                        backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        navController.navigate(Destinations.Contacts.route)
-                    }
-                }
-            }
-
-            // NEW AI Test Lab Section
-            item {
-                AITestLabCard(
-                    userId = user?.userId ?: "",
-                    navController = navController
-                )
-            }
-
-            item {
-                // Status overview
-                StatusOverviewCard(
-                    unreadNotifications = unreadCount,
-                    lastDetectionTime = "No recent activity"
-                )
-            }
-
-            item {
-                // Recent notifications
-                if (notifications.isNotEmpty()) {
-                    Text(
-                        text = "Recent Notifications",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-
-            items(notifications.take(5)) { notification ->
-                NotificationItem(
-                    title = notification.title,
-                    message = notification.message,
-                    timestamp = notification.timestamp,
-                    isRead = notification.isRead,
-                    onClick = { navController.navigate(Destinations.Notifications.route) }
-                )
-            }
-
-            if (notifications.size > 5) {
+        Scaffold(
+            topBar = { TopBar(navController) },
+            bottomBar = { BottomNav(navController) },
+            containerColor = Color.Transparent
+        ) { paddingValues ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 item {
+                    Column {
+                        Text(
+                            text = "Hi ${user?.firstName ?: "User"},",
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextPrimary
+                        )
+
+                        if (unreadCount > 0) {
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Text(
+                                text = buildAnnotatedString {
+                                    withStyle(
+                                        SpanStyle(
+                                            color = TextSecondary,
+                                            fontSize = 16.sp
+                                        )
+                                    ) { append("You have ") }
+
+                                    withStyle(
+                                        SpanStyle(
+                                            color = Color(0xffd42a2a),
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    ) {
+                                        append(
+                                            "$unreadCount unread notification" +
+                                                    if (unreadCount != 1) "s" else ""
+                                        )
+                                    }
+                                    withStyle(
+                                        SpanStyle(
+                                            color = TextSecondary,
+                                            fontSize = 16.sp
+                                        )
+                                    ) { append(" today") }
+                                }
+                            )
+                        }
+                    }
+                }
+                item {
+                    // Quick actions
                     Text(
-                        text = "View all notifications",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { navController.navigate(Destinations.Notifications.route) }
-                            .padding(16.dp)
+                        text = "Quick Actions",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        QuickActionCard(
+                            title = "Start Detection",
+                            icon = Icons.Default.Visibility,
+                            iconColor = ButtonBlue,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            navController.navigate(Destinations.SeizureDetection.route)
+                        }
+
+                        QuickActionCard(
+                            title = "Contacts",
+                            icon = Icons.Default.ContactPhone,
+                            iconColor = AccentGreen,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            navController.navigate(Destinations.Contacts.route)
+                        }
+                    }
+                }
+
+                // AI Test Lab Section
+                item {
+                    AITestLabCard(
+                        userId = user?.userId ?: "",
+                        navController = navController
+                    )
+                }
+
+                item {
+                    // Status overview
+                    StatusOverviewCard(
+                        unreadNotifications = unreadCount,
+                        lastDetectionTime = "No recent activity"
+                    )
+                }
+
+                item {
+                    // Recent notifications
+                    if (notifications.isNotEmpty()) {
+                        Text(
+                            text = "Recent Notifications",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextPrimary
+                        )
+                    }
+                }
+
+                items(notifications.take(5)) { notification ->
+                    NotificationItem(
+                        title = notification.title,
+                        message = notification.message,
+                        timestamp = notification.timestamp,
+                        isRead = notification.isRead,
+                        onClick = { navController.navigate(Destinations.Notifications.route) }
+                    )
+                }
+
+                if (notifications.size > 5) {
+                    item {
+                        Text(
+                            text = "View all notifications",
+                            fontSize = 15.sp,
+                            color = ButtonBlue,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { navController.navigate(Destinations.Notifications.route) }
+                                .padding(16.dp)
+                        )
+                    }
                 }
             }
         }
@@ -192,15 +229,17 @@ fun DashboardScreen(
 private fun QuickActionCard(
     title: String,
     icon: ImageVector,
-    backgroundColor: Color,
+    iconColor: Color,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     Card(
         modifier = modifier
-            .height(100.dp)
+            .height(120.dp)
             .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = backgroundColor)
+        colors = CardDefaults.cardColors(containerColor = DarkBackground),
+        shape = RoundedCornerShape(16.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, TextFieldBorder)
     ) {
         Column(
             modifier = Modifier
@@ -212,13 +251,15 @@ private fun QuickActionCard(
             Icon(
                 imageVector = icon,
                 contentDescription = title,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(36.dp),
+                tint = iconColor
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
+                color = TextPrimary
             )
         }
     }
@@ -232,44 +273,70 @@ private fun AITestLabCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(100.dp)
+            .height(120.dp)
             .clickable {
                 try {
-                    navController.navigate(Destinations.TestLab.createRoute(userId)) // Returns "testlab"
+                    navController.navigate(Destinations.TestLab.createRoute(userId))
                 } catch (e: IllegalArgumentException) {
                     Log.e("NavigationError", "Failed to navigate: ${e.message}")
                 }
             },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
-    ){
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                Text(
-                    text = "AI Test Lab",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Test your seizure videos with AI",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, TextFieldBorder)
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+
+            // Background image (fills entire card)
+            Image(
+                painter = painterResource(id = R.drawable.panel_background1),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // Optional overlay to keep text readable
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        DarkBackground.copy(alpha = 0.6f)
+                    )
+            )
+
+            // Foreground content
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = "AI Test Lab",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Test your seizure videos with AI",
+                        fontSize = 14.sp,
+                        color = TextSecondary
+                    )
+                }
+
+                Icon(
+                    imageVector = Icons.Default.Science,
+                    contentDescription = "AI Test Lab",
+                    modifier = Modifier.size(40.dp),
+                    tint = AccentPurple
                 )
             }
-            Icon(
-                imageVector = Icons.Default.Science,
-                contentDescription = "AI Test Lab",
-                modifier = Modifier.size(32.dp)
-            )
         }
     }
 }
+
 
 @Composable
 private fun StatusOverviewCard(
@@ -277,17 +344,21 @@ private fun StatusOverviewCard(
     lastDetectionTime: String
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = DarkBackground),
+        shape = RoundedCornerShape(16.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, TextFieldBorder)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(20.dp)
         ) {
             Text(
                 text = "Status Overview",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = TextPrimary
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -305,12 +376,12 @@ private fun StatusOverviewCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = "Last Activity: $lastDetectionTime",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                fontSize = 13.sp,
+                color = TextSecondary
             )
         }
     }
@@ -328,20 +399,21 @@ private fun StatusItem(
         Icon(
             imageVector = icon,
             contentDescription = label,
-            modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.primary
+            modifier = Modifier.size(24.dp),
+            tint = ButtonBlue
         )
-        Spacer(modifier = Modifier.padding(4.dp))
+        Spacer(modifier = Modifier.padding(6.dp))
         Column {
             Text(
                 text = value,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary
             )
             Text(
                 text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                fontSize = 13.sp,
+                color = TextSecondary
             )
         }
     }
@@ -360,7 +432,10 @@ private fun NotificationItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = DarkBackground),
+        shape = RoundedCornerShape(12.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, TextFieldBorder)
     ) {
         Row(
             modifier = Modifier.padding(16.dp)
@@ -370,80 +445,94 @@ private fun NotificationItem(
                     modifier = Modifier
                         .size(8.dp)
                         .background(
-                            MaterialTheme.colorScheme.primary,
+                            UnreadIndicator,
                             RoundedCornerShape(4.dp)
                         )
                 )
-                Spacer(modifier = Modifier.padding(4.dp))
+                Spacer(modifier = Modifier.padding(6.dp))
             }
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (!isRead) FontWeight.Bold else FontWeight.Normal
+                    fontSize = 15.sp,
+                    fontWeight = if (!isRead) FontWeight.Bold else FontWeight.Normal,
+                    color = TextPrimary
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = message,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    fontSize = 13.sp,
+                    color = TextSecondary
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = formatter.format(timestamp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    fontSize = 12.sp,
+                    color = TextFieldPlaceholder
                 )
             }
         }
     }
 }
 
-
 @Preview(showBackground = true, apiLevel = 34)
 @Composable
 fun CompleteDashboardPreview() {
-    EpiGuardTheme {
-        // Create a preview NavController
-        val navController = rememberNavController()
+    val navController = rememberNavController()
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DarkBackground)
+    ) {
+        // Background image overlay
+        Image(
+            painter = painterResource(id = R.drawable.bg_23),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+            alpha = 0.3f
+        )
 
         Scaffold(
+            containerColor = Color.Transparent,
             topBar = {
-                // Your actual TopBar component for preview
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                        .background(DarkBackground)
+                        .padding(horizontal = 15.dp, vertical = 15.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // No back button for dashboard (showBackButton = false)
-                    Box(modifier = Modifier.size(48.dp)) // Spacer when no back button
+                    Image(
+                        painter = painterResource(id = R.drawable.logos),
+                        contentDescription = "App Logo",
+                        modifier = Modifier.height(32.dp)
+                    )
 
-                    // Right side icons
+                    Spacer(modifier = Modifier.weight(1f))
+
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Notification bell with badge
                         BadgedBox(
                             badge = {
-                                Badge {
-                                    Text(text = "3") // Preview with 3 notifications
+                                Badge(containerColor = ButtonBlue) {
+                                    Text(text = "3", color = Color.White, fontSize = 12.sp)
                                 }
                             }
                         ) {
                             IconButton(onClick = { }) {
                                 Image(
-                                    painter = painterResource(id = R.drawable.bell),
+                                    painter = painterResource(id = R.drawable.topbar_notification_bell),
                                     contentDescription = "Notifications",
-                                    modifier = Modifier.size(24.dp),
-                                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
+                                    modifier = Modifier.size(24.dp)
                                 )
                             }
                         }
 
-                        // Profile picture placeholder
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
@@ -462,7 +551,6 @@ fun CompleteDashboardPreview() {
                 }
             },
             bottomBar = {
-                // Use the actual BottomNav component for preview
                 BottomNav(navController = navController)
             }
         ) { paddingValues ->
@@ -470,32 +558,31 @@ fun CompleteDashboardPreview() {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .background(MaterialTheme.colorScheme.background)
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item {
-                    // Welcome message
                     Column {
                         Text(
                             text = "Welcome back,",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            fontSize = 17.sp,
+                            color = TextSecondary
                         )
                         Text(
                             text = "John Doe",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
                         )
                     }
                 }
 
                 item {
-                    // Quick actions
                     Text(
                         text = "Quick Actions",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -506,26 +593,24 @@ fun CompleteDashboardPreview() {
                         QuickActionCard(
                             title = "Start Detection",
                             icon = Icons.Default.Visibility,
-                            backgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                            iconColor = ButtonBlue,
                             modifier = Modifier.weight(1f)
                         ) { }
 
                         QuickActionCard(
                             title = "Contacts",
                             icon = Icons.Default.ContactPhone,
-                            backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                            iconColor = AccentGreen,
                             modifier = Modifier.weight(1f)
                         ) { }
                     }
                 }
 
                 item {
-                    // AI Test Lab
                     AITestLabCard(userId = "preview-id", navController = navController)
                 }
 
                 item {
-                    // Status overview
                     StatusOverviewCard(
                         unreadNotifications = 3,
                         lastDetectionTime = "2 hours ago"
@@ -533,20 +618,19 @@ fun CompleteDashboardPreview() {
                 }
 
                 item {
-                    // Recent notifications header
                     Text(
                         text = "Recent Notifications",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
                     )
                 }
 
-                // Sample notifications for preview
                 items(3) { index ->
                     NotificationItem(
                         title = "Sample Notification ${index + 1}",
                         message = "This is a sample notification message for preview",
-                        timestamp = System.currentTimeMillis() - (index * 3600000L), // 1 hour intervals
+                        timestamp = System.currentTimeMillis() - (index * 3600000L),
                         isRead = index > 0,
                         onClick = { }
                     )

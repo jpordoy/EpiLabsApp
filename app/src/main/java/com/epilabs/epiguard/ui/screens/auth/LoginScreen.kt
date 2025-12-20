@@ -6,25 +6,27 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,7 +44,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
@@ -77,6 +78,7 @@ private val TextFieldPlaceholder = Color(0xFF606E77)
 private val TextPrimary = Color(0xFFDECDCD)
 private val TextSecondaryWhite = Color(0xFFF4E9F6)
 private val ButtonTextBlue = Color(0xFF0C5AC7)
+private val ErrorRed = Color(0xFFFF6B6B)
 
 // ------------------- UI only Composable -------------------
 
@@ -116,20 +118,23 @@ fun LoginScreenContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(horizontal = 20.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Facebook logo placeholder - you can replace with your logo
+            Spacer(modifier = Modifier.height(100.dp))
+
+            // Logo
             Image(
-                painter = painterResource(id = R.drawable.temp_logo), // Replace with your logo
+                painter = painterResource(id = R.drawable.logos),
                 contentDescription = "Logo",
                 modifier = Modifier
-                    .size(150.dp)
-                    .padding(bottom = 1.dp)
+                    .size(74.dp)
+                    .padding(bottom = 30.dp)
             )
+            Spacer(modifier = Modifier.height(40.dp))
 
-            // Email field - exact design specs
+            // Email field
             OutlinedTextField(
                 value = email,
                 onValueChange = onEmailChange,
@@ -159,7 +164,7 @@ fun LoginScreenContent(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Password field - exact design specs
+            // Password field
             OutlinedTextField(
                 value = password,
                 onValueChange = onPasswordChange,
@@ -196,9 +201,28 @@ fun LoginScreenContent(
                 shape = RoundedCornerShape(10.dp)
             )
 
+            // Forgotten Password link - aligned to right
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(
+                    onClick = onForgotPasswordClick,
+                    modifier = Modifier.padding(0.dp)
+                ) {
+                    Text(
+                        "Forgotten Password?",
+                        color = TextSecondaryWhite,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Log in button - exact design specs with 40dp radius
+            // Sign In button
             Button(
                 onClick = onSignInClick,
                 modifier = Modifier
@@ -219,21 +243,7 @@ fun LoginScreenContent(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Forgot password
-            TextButton(
-                onClick = onForgotPasswordClick,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    "Forgotten Password",
-                    color = TextSecondaryWhite,
-                    fontSize = 17.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Google Sign-In Button
             OutlinedButton(
@@ -256,7 +266,7 @@ fun LoginScreenContent(
                     modifier = Modifier.size(20.dp),
                     tint = Color.Unspecified
                 )
-                Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     "Continue with Google",
                     fontSize = 17.sp,
@@ -264,18 +274,19 @@ fun LoginScreenContent(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            if (errorMessage != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    errorMessage,
+                    color = ErrorRed,
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
 
-            // Divider
-            HorizontalDivider(
-                modifier = Modifier.fillMaxWidth(),
-                color = TextFieldBorder,
-                thickness = 1.dp
-            )
+            Spacer(modifier = Modifier.height(150.dp))
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Create new account button - exact design specs with border
+            // Create new account button
             OutlinedButton(
                 onClick = onSignUpClick,
                 modifier = Modifier
@@ -297,15 +308,7 @@ fun LoginScreenContent(
                 )
             }
 
-            if (errorMessage != null) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    errorMessage,
-                    color = Color(0xFFFF6B6B),
-                    fontSize = 14.sp,
-                    textAlign = TextAlign.Center
-                )
-            }
+            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }

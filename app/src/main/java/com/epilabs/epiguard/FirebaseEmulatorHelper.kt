@@ -7,12 +7,11 @@ import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.functions.FirebaseFunctions
 
 object FirebaseEmulatorHelper {
-    private const val USE_EMULATOR = true  // Set to false for production
+    private const val USE_EMULATOR = false  // Set to false for production
 
     // For Android Emulator use: 10.0.2.2
     // For Physical Device use: Your computer's IP
     private const val EMULATOR_HOST = "10.0.2.2"  // Change if using physical device
-
     private const val AUTH_PORT = 9099
     private const val FIRESTORE_PORT = 8081  // UPDATED from 8080
     private const val FUNCTIONS_PORT = 5001

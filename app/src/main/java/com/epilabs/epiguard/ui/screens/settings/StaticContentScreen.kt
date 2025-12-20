@@ -1,22 +1,34 @@
 package com.epilabs.epiguard.ui.screens.settings
 
+import android.app.Activity
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.epilabs.epiguard.ui.components.BottomNav
 import com.epilabs.epiguard.ui.components.TopBar
 import com.epilabs.epiguard.ui.viewmodels.UserViewModel
+
+// Exact colors from the design
+private val DarkBackground = Color(0xFF11222E)
+private val TextPrimary = Color(0xFFDECDCD)
+private val TextSecondary = Color(0xFF8B9AA8)
 
 @Composable
 fun StaticContentScreen(
@@ -25,28 +37,45 @@ fun StaticContentScreen(
     content: String,
     userViewModel: UserViewModel = viewModel()
 ) {
+    // Set system bars to dark
+    val view = LocalView.current
+    val window = (view.context as? Activity)?.window
+    LaunchedEffect(Unit) {
+        window?.let {
+            WindowCompat.setDecorFitsSystemWindows(it, false)
+            it.statusBarColor = DarkBackground.toArgb()
+            it.navigationBarColor = DarkBackground.toArgb()
+            WindowCompat.getInsetsController(it, view).isAppearanceLightStatusBars = false
+            WindowCompat.getInsetsController(it, view).isAppearanceLightNavigationBars = false
+        }
+    }
+
     Scaffold(
         topBar = { TopBar(navController, userViewModel = userViewModel) },
-        bottomBar = { BottomNav(navController) }
+        bottomBar = { BottomNav(navController) },
+        containerColor = DarkBackground
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(DarkBackground)
                 .padding(paddingValues)
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineMedium,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
+                color = TextPrimary,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
             Text(
                 text = content,
-                style = MaterialTheme.typography.bodyMedium,
-                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.5
+                fontSize = 15.sp,
+                color = TextSecondary,
+                lineHeight = 24.sp
             )
         }
     }

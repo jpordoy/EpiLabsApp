@@ -5,9 +5,9 @@ import android.graphics.Bitmap
 import android.util.Log
 import com.epilabs.epiguard.data.repo.PredictionLogRepository
 import com.epilabs.epiguard.models.PredictionLog
-import com.epilabs.epiguard.models.RawDataModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
@@ -19,19 +19,26 @@ import java.io.FileInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.channels.FileChannel
-import java.text.SimpleDateFormat
-import java.util.Locale
 import kotlin.math.exp
 
-class TFLiteHelper(context: Context) {
+class TFLiteHelper(
+    context: Context,
+    private val predictionLogRepository: PredictionLogRepository = PredictionLogRepository()
+) {
+    companion object {
+        private const val TAG = "TFLiteHelper"
+    }
 
     private var interpreter: Interpreter
     private val frameBuffer = ArrayList<Bitmap>()
     private var firstFrameTime: Long? = null
-    private val predictionLogs = mutableListOf<PredictionLog>()
-    private val predictionLogRepository = PredictionLogRepository()
     private val labels = arrayOf("Seizure", "Not Seizure")
-    private var frameCounter = 0
+
+    // Use coroutine scope for async Firebase operations
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    // Track frame number within session
+    private var frameNumber = 0
 
     private val imageProcessor = ImageProcessor.Builder()
         .add(ResizeOp(224, 224, ResizeOp.ResizeMethod.BILINEAR))
@@ -49,19 +56,28 @@ class TFLiteHelper(context: Context) {
             useXNNPACK = false
         })
         fileInputStream.close()
-        Log.d("TFLiteDebug", "TFLite interpreter initialized")
+        Log.d(TAG, "TFLite interpreter initialized")
     }
 
+    /**
+     * Add frame and predict - Firebase version using your actual PredictionLogRepository
+     * @param bitmap The frame to process
+     * @param userId User ID (Firebase UID string)
+     * @param sessionId Optional session ID for grouping predictions
+     * @param videoId Optional video ID if recording
+     * @return FloatArray of probabilities [seizure, notSeizure] or null if not ready
+     */
     fun addFrameAndPredict(
         bitmap: Bitmap?,
-        userId: String,  // Changed from Int to String
-        sessionId: String,  // Added sessionId parameter
-        seizureID: Int? = null
+        userId: String,
+        sessionId: String = "",
+        videoId: String = ""
     ): FloatArray? {
         if (bitmap == null || bitmap.isRecycled) {
-            Log.e("TFLiteDebug", "Null or recycled bitmap skipped")
+            Log.e(TAG, "Null or recycled bitmap skipped")
             return null
         }
+
         val frameTime = System.currentTimeMillis()
         if (firstFrameTime == null) firstFrameTime = frameTime
 
@@ -69,18 +85,16 @@ class TFLiteHelper(context: Context) {
         val bitmapCopy = bitmap.config?.let { bitmap.copy(it, false) }
         if (bitmapCopy != null) {
             frameBuffer.add(bitmapCopy)
-        }
-        if (bitmapCopy != null) {
-            Log.d("TFLiteDebug", "Frame added. Buffer size: ${frameBuffer.size}, Bitmap: ${bitmapCopy.width}x${bitmapCopy.height}, Timestamp: $frameTime")
+            Log.d(TAG, "Frame added. Buffer size: ${frameBuffer.size}, Bitmap: ${bitmapCopy.width}x${bitmapCopy.height}")
         }
 
         val elapsedTime = frameTime - (firstFrameTime ?: frameTime)
         if (frameBuffer.size < 10 && elapsedTime < 5000) {
-            Log.d("TFLiteDebug", "Waiting for 10 frames or 5 seconds, current size: ${frameBuffer.size}, elapsed: ${elapsedTime}ms")
+            Log.d(TAG, "Waiting for 10 frames or 5 seconds, current size: ${frameBuffer.size}, elapsed: ${elapsedTime}ms")
             return null
         }
 
-        Log.d("TFLiteDebug", "Running inference with ${frameBuffer.size} frames")
+        Log.d(TAG, "Running inference with ${frameBuffer.size} frames")
         val inferenceStartTime = System.currentTimeMillis()
         val result = runInference(frameBuffer.toList())
 
@@ -88,54 +102,53 @@ class TFLiteHelper(context: Context) {
         frameBuffer.forEach { if (!it.isRecycled) it.recycle() }
         frameBuffer.clear()
         firstFrameTime = null
-        Log.d("TFLiteDebug", "Inference completed in ${System.currentTimeMillis() - inferenceStartTime}ms")
+        Log.d(TAG, "Inference completed in ${System.currentTimeMillis() - inferenceStartTime}ms")
 
         if (result == null) {
-            Log.e("TFLiteDebug", "Inference failed, no result")
+            Log.e(TAG, "Inference failed, no result")
             return null
         }
 
-        Log.d("TFLiteDebug", "Raw logits: ${result[0]}, ${result[1]}")
+        Log.d(TAG, "Raw logits: ${result[0]}, ${result[1]}")
         val softmaxed = softmax(result)
-        val reversedSoftmaxed = floatArrayOf(softmaxed[1], softmaxed[0])
 
-        Log.d("TFLiteDebug", "Softmaxed probs (reversed): Seizure ${reversedSoftmaxed[0]}, Not Seizure ${reversedSoftmaxed[1]}")
+        // Reverse to match your expected format [seizure, notSeizure]
+        val reversedSoftmaxed = floatArrayOf(softmaxed[1], softmaxed[0])
+        Log.d(TAG, "Softmaxed probs (reversed): Seizure ${reversedSoftmaxed[0]}, Not Seizure ${reversedSoftmaxed[1]}")
 
         val predictedIndex = reversedSoftmaxed.indices.maxByOrNull { reversedSoftmaxed[it] } ?: 0
         val label = labels[predictedIndex]
         val confidence = reversedSoftmaxed[predictedIndex]
 
         val timestamp = System.currentTimeMillis()
+        frameNumber++
 
-        // Create PredictionLog with new Firebase model
-        val log = PredictionLog(
-            id = "",  // Firestore will generate this
-            userId = userId,  // Now String
+        // Save to Firebase using your PredictionLogRepository
+        val predictionLog = PredictionLog(
+            userId = userId,
             timestamp = timestamp,
             predictedLabel = label,
             confidence = confidence,
-            rawScores = reversedSoftmaxed.toList(),  // Convert FloatArray to List<Float>
-            frameNumber = frameCounter++,
-            sessionId = sessionId,
-            videoId = seizureID?.toString() ?: ""  // Convert Int? to String
+            rawScores = reversedSoftmaxed.toList(), // Convert FloatArray to List<Float> for Firestore
+            frameNumber = frameNumber,
+            videoId = videoId,
+            sessionId = sessionId
         )
 
-        predictionLogs.add(log)
-
-        // Save to Firebase asynchronously
-        CoroutineScope(Dispatchers.IO).launch {
+        // Save asynchronously to Firebase
+        scope.launch {
             try {
-                val result = predictionLogRepository.savePredictionLog(log)
+                val result = predictionLogRepository.savePredictionLog(predictionLog)
                 when (result) {
-                    is Result.Success -> {
-                        Log.d("TFLiteDebug", "Saved prediction to Firebase: ID=${result.data}, Label: $label, Confidence: $confidence")
+                    is com.epilabs.epiguard.utils.Result.Success -> {
+                        Log.d(TAG, "Saved prediction to Firebase: ${result.data}")
                     }
-                    is Result.Error -> {
-                        Log.e("TFLiteDebug", "Failed to save prediction to Firebase: ${result.message}")
+                    is com.epilabs.epiguard.utils.Result.Error -> {
+                        Log.e(TAG, "Failed to save prediction to Firebase: ${result.message}")
                     }
                 }
             } catch (e: Exception) {
-                Log.e("TFLiteDebug", "Failed to save prediction to Firebase: ${e.message}", e)
+                Log.e(TAG, "Error saving prediction to Firebase: ${e.message}", e)
             }
         }
 
@@ -144,12 +157,11 @@ class TFLiteHelper(context: Context) {
 
     private fun runInference(frames: List<Bitmap>): FloatArray? {
         if (frames.isEmpty()) {
-            Log.e("TFLiteDebug", "No frames to process")
+            Log.e(TAG, "No frames to process")
             return null
         }
 
         try {
-            val frameCount = frames.size
             val inputBuffer = ByteBuffer.allocateDirect(1 * 10 * 224 * 224 * 3 * 4)
             inputBuffer.order(ByteOrder.nativeOrder())
 
@@ -158,7 +170,7 @@ class TFLiteHelper(context: Context) {
 
             for (frame in framesToProcess) {
                 if (frame.isRecycled) {
-                    Log.e("TFLiteDebug", "Skipping recycled bitmap in inference")
+                    Log.e(TAG, "Skipping recycled bitmap in inference")
                     continue
                 }
 
@@ -175,7 +187,7 @@ class TFLiteHelper(context: Context) {
                         inputBuffer.putFloat(value)
                     }
                 } catch (e: Exception) {
-                    Log.e("TFLiteDebug", "Error processing frame: ${e.message}")
+                    Log.e(TAG, "Error processing frame: ${e.message}")
                     continue
                 }
             }
@@ -184,7 +196,7 @@ class TFLiteHelper(context: Context) {
             if (framesToProcess.size < 10) {
                 val paddingSize = (10 - framesToProcess.size) * 224 * 224 * 3
                 repeat(paddingSize) { inputBuffer.putFloat(0f) }
-                Log.w("TFLiteDebug", "Padded input with ${10 - framesToProcess.size} zeroed frames")
+                Log.w(TAG, "Padded input with ${10 - framesToProcess.size} zeroed frames")
             }
 
             inputBuffer.rewind()
@@ -194,7 +206,7 @@ class TFLiteHelper(context: Context) {
 
             return outputArray[0]
         } catch (e: Exception) {
-            Log.e("TFLiteDebug", "Inference error: ${e.message}", e)
+            Log.e(TAG, "Inference error: ${e.message}", e)
             return null
         }
     }
@@ -218,9 +230,10 @@ class TFLiteHelper(context: Context) {
             interpreter.close()
             frameBuffer.forEach { if (!it.isRecycled) it.recycle() }
             frameBuffer.clear()
-            Log.d("TFLiteDebug", "Interpreter closed")
+            frameNumber = 0
+            Log.d(TAG, "Interpreter closed")
         } catch (e: Exception) {
-            Log.e("TFLiteDebug", "Error closing TFLiteHelper: ${e.message}", e)
+            Log.e(TAG, "Error closing TFLiteHelper: ${e.message}", e)
         }
     }
 }

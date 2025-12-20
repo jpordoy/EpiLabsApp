@@ -1,5 +1,7 @@
 package com.epilabs.epiguard.ui.screens.settings
 
+import android.app.Activity
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -17,11 +20,12 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,14 +34,35 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.epilabs.epiguard.ui.components.BottomNav
 import com.epilabs.epiguard.ui.viewmodels.UserViewModel
 import com.epilabs.epiguard.utils.PreferencesHelper
+
+// Exact colors from the design
+private val DarkBackground = Color(0xFF11222E)
+private val CardBackground = Color(0xFF1A2A3A)
+private val TextFieldBorder = Color(0xFF2F414F)
+private val ButtonBlue = Color(0xFF0163E1)
+private val TextFieldPlaceholder = Color(0xFF606E77)
+private val TextPrimary = Color(0xFFDECDCD)
+private val TextSecondary = Color(0xFF8B9AA8)
+// Vibrant gradient colors
+private val VibrantRed = Color(0xFFFF3B30)
+private val VibrantOrange = Color(0xFFFF9500)
+private val VibrantYellow = Color(0xFFFFCC00)
+private val VibrantGreen = Color(0xFF34C759)
+private val VibrantBlue = Color(0xFF007AFF)
+private val VibrantPurple = Color(0xFFAF52DE)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,22 +82,49 @@ fun ConfidenceThresholdScreen(
         preferencesHelper.setConfidenceThreshold(confidenceThreshold)
     }
 
+    // Set system bars to dark
+    val view = LocalView.current
+    val window = (view.context as? Activity)?.window
+    LaunchedEffect(Unit) {
+        window?.let {
+            WindowCompat.setDecorFitsSystemWindows(it, false)
+            it.statusBarColor = DarkBackground.toArgb()
+            it.navigationBarColor = DarkBackground.toArgb()
+            WindowCompat.getInsetsController(it, view).isAppearanceLightStatusBars = false
+            WindowCompat.getInsetsController(it, view).isAppearanceLightNavigationBars = false
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Confidence Threshold") },
+                title = {
+                    Text(
+                        "Confidence Threshold",
+                        color = TextPrimary
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = TextPrimary
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = DarkBackground
+                )
             )
         },
-        bottomBar = { BottomNav(navController) }
+        bottomBar = { BottomNav(navController) },
+        containerColor = DarkBackground
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(DarkBackground)
                 .padding(paddingValues)
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
@@ -81,28 +133,32 @@ fun ConfidenceThresholdScreen(
             // Header
             Text(
                 text = "AI Model Confidence",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary
             )
 
             Text(
                 text = "Adjust how confident the AI model must be before detecting a seizure. Higher values reduce false positives but may miss some seizures.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                fontSize = 15.sp,
+                color = TextSecondary
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Current Value Display
+            // Current Value Display with vibrant gradient
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = when {
-                        confidenceThreshold >= 0.9f -> MaterialTheme.colorScheme.errorContainer
-                        confidenceThreshold >= 0.8f -> MaterialTheme.colorScheme.tertiaryContainer
-                        confidenceThreshold >= 0.7f -> MaterialTheme.colorScheme.primaryContainer
-                        else -> MaterialTheme.colorScheme.secondaryContainer
+                        confidenceThreshold >= 0.9f -> VibrantPurple.copy()
+                        confidenceThreshold >= 0.85f -> VibrantBlue.copy()
+                        confidenceThreshold >= 0.8f -> VibrantGreen.copy()
+                        confidenceThreshold >= 0.7f -> VibrantYellow.copy()
+                        confidenceThreshold >= 0.6f -> VibrantOrange.copy()
+                        else -> VibrantRed.copy()
                     }
-                )
+                ),
+                shape = RoundedCornerShape(10.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp)
@@ -114,13 +170,15 @@ fun ConfidenceThresholdScreen(
                     ) {
                         Text(
                             text = "Current Threshold",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextPrimary
                         )
                         Text(
                             text = "${(confidenceThreshold * 100).toInt()}%",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
                         )
                     }
 
@@ -131,22 +189,28 @@ fun ConfidenceThresholdScreen(
                             confidenceThreshold >= 0.7f -> "Medium - More sensitive, may have occasional false positives"
                             else -> "Low - Very sensitive, likely to have false positives"
                         },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 14.sp,
+                        color = TextSecondary,
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }
 
             // Slider
-            Card {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = CardBackground
+                ),
+                shape = RoundedCornerShape(10.dp)
+            ) {
                 Column(
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text(
                         text = "Threshold Level",
-                        style = MaterialTheme.typography.titleMedium,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
 
@@ -154,8 +218,27 @@ fun ConfidenceThresholdScreen(
                         value = confidenceThreshold,
                         onValueChange = { confidenceThreshold = it },
                         valueRange = 0.5f..0.95f,
-                        steps = 8, // 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95
-                        modifier = Modifier.fillMaxWidth()
+                        steps = 8,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = SliderDefaults.colors(
+                            thumbColor = when {
+                                confidenceThreshold >= 0.9f -> VibrantPurple
+                                confidenceThreshold >= 0.85f -> VibrantBlue
+                                confidenceThreshold >= 0.8f -> VibrantGreen
+                                confidenceThreshold >= 0.7f -> VibrantYellow
+                                confidenceThreshold >= 0.6f -> VibrantOrange
+                                else -> VibrantRed
+                            },
+                            activeTrackColor = when {
+                                confidenceThreshold >= 0.9f -> VibrantPurple
+                                confidenceThreshold >= 0.85f -> VibrantBlue
+                                confidenceThreshold >= 0.8f -> VibrantGreen
+                                confidenceThreshold >= 0.7f -> VibrantYellow
+                                confidenceThreshold >= 0.6f -> VibrantOrange
+                                else -> VibrantRed
+                            },
+                            inactiveTrackColor = TextFieldBorder
+                        )
                     )
 
                     Row(
@@ -164,13 +247,13 @@ fun ConfidenceThresholdScreen(
                     ) {
                         Text(
                             text = "50%\nMore Sensitive",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            fontSize = 12.sp,
+                            color = TextSecondary
                         )
                         Text(
                             text = "95%\nLess Sensitive",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            fontSize = 12.sp,
+                            color = TextSecondary
                         )
                     }
                 }
@@ -179,16 +262,18 @@ fun ConfidenceThresholdScreen(
             // Information Card
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                    containerColor = CardBackground
+                ),
+                shape = RoundedCornerShape(10.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text(
                         text = "How it works",
-                        style = MaterialTheme.typography.titleSmall,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
 
@@ -198,8 +283,9 @@ fun ConfidenceThresholdScreen(
                                 "• Higher thresholds = fewer false alarms but may miss seizures\n" +
                                 "• Lower thresholds = catch more seizures but more false alarms\n" +
                                 "• Recommended: Start at 80% and adjust based on your experience",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontSize = 14.sp,
+                        color = TextSecondary,
+                        lineHeight = 20.sp
                     )
                 }
             }
@@ -207,16 +293,18 @@ fun ConfidenceThresholdScreen(
             // Recommendations Card
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                )
+                    containerColor = ButtonBlue.copy(alpha = 0.15f)
+                ),
+                shape = RoundedCornerShape(10.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text(
                         text = "Recommendations by seizure type",
-                        style = MaterialTheme.typography.titleSmall,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
 
@@ -225,8 +313,9 @@ fun ConfidenceThresholdScreen(
                                 "• Focal Seizures: 80-90% - Subtle movements, reduce false positives\n" +
                                 "• Absence Seizures: 65-75% - Minimal movement, need high sensitivity\n" +
                                 "• Myoclonic: 70-80% - Quick jerks, balance sensitivity and accuracy",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontSize = 14.sp,
+                        color = TextSecondary,
+                        lineHeight = 20.sp
                     )
                 }
             }

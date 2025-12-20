@@ -15,6 +15,9 @@ import com.epilabs.epiguard.ui.screens.auth.LoginScreen
 import com.epilabs.epiguard.ui.screens.auth.SignupScreen
 import com.epilabs.epiguard.ui.screens.contacts.ContactsScreen
 import com.epilabs.epiguard.ui.screens.dashboard.DashboardScreen
+import com.epilabs.epiguard.ui.screens.detection.DeviceSelectionScreen
+import com.epilabs.epiguard.ui.screens.detection.LocalSeizureDetectorScreen
+import com.epilabs.epiguard.ui.screens.detection.SeizureDetectionScreen
 import com.epilabs.epiguard.ui.screens.notifications.NotificationsScreen
 import com.epilabs.epiguard.ui.screens.onboarding.OnboardingScreen
 import com.epilabs.epiguard.ui.screens.profile.ProfileScreen
@@ -24,7 +27,11 @@ import com.epilabs.epiguard.ui.screens.settings.HelpSupportScreen
 import com.epilabs.epiguard.ui.screens.settings.PrivacyPolicyScreen
 import com.epilabs.epiguard.ui.screens.settings.SettingsScreen
 import com.epilabs.epiguard.ui.screens.settings.TermsOfServiceScreen
+import com.epilabs.epiguard.ui.screens.testlab.TestLabScreen
+import com.epilabs.epiguard.ui.screens.testlab.TestResultsScreen
 import com.epilabs.epiguard.ui.viewmodels.UserViewModel
+import com.epilabs.epiguard.ui.screens.testlab.VideoPlayerScreen as TestLabVideoPlayerScreen
+
 
 
 @Composable
@@ -74,6 +81,60 @@ fun NavGraph(
         }
         composable(Destinations.Settings.route) {
             SettingsScreen(navController = navController)
+        }
+        composable(
+            route = Destinations.SeizureDetection.route,
+            deepLinks = listOf(navDeepLink { uriPattern = "android-app://androidx.navigation/seizure_detection" })
+        ) {
+            SeizureDetectionScreen(navController = navController)
+        }
+        composable(Destinations.DeviceSelection.route) {
+            DeviceSelectionScreen(navController = navController)
+        }
+        composable(Destinations.LocalSeizureDetection.route) {
+            LocalSeizureDetectorScreen(navController = navController)
+        }
+
+        //testlab
+        composable(
+            route = Destinations.TestLab.route,
+            deepLinks = listOf(navDeepLink { uriPattern = "android-app://androidx.navigation/testlab" })
+        ) {
+            TestLabScreen(
+                navController = navController,
+                userViewModel = userViewModel
+            )
+        }
+
+        composable(
+            route = Destinations.VideoPlayer.route,
+            arguments = listOf(
+                navArgument("videoId") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val videoId = backStackEntry.arguments?.getString("videoId") ?: ""
+            TestLabVideoPlayerScreen(
+                videoId = videoId,
+                navController = navController,
+                userViewModel = userViewModel
+            )
+        }
+        composable(
+            route = Destinations.TestResults.route,
+            arguments = listOf(
+                navArgument("resultId") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val resultId = backStackEntry.arguments?.getString("resultId") ?: ""
+            TestResultsScreen(
+                resultId = resultId,
+                navController = navController,
+                userViewModel = userViewModel
+            )
         }
 
         // Settings screens

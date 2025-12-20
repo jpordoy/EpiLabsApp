@@ -4,15 +4,24 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import com.epilabs.epiguard.data.repo.AuthRepository
 import com.google.firebase.FirebaseApp
 
 class EpiGuardApp : Application() {
+
+    // Make AuthRepository available app-wide
+    lateinit var authRepository: AuthRepository
+        private set
+
     override fun onCreate() {
         super.onCreate()
 
         FirebaseApp.initializeApp(this)
         FirebaseEmulatorHelper.setupEmulators()
         createNotificationChannels()
+
+        // Initialize AuthRepository with application context
+        authRepository = AuthRepository(this)
     }
 
     private fun createNotificationChannels() {

@@ -1,7 +1,8 @@
 package com.epilabs.epiguard.ui.viewmodels
 
+import android.app.Application
 import android.content.Context
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.epilabs.epiguard.data.repo.AuthRepository
 import com.epilabs.epiguard.utils.Result
@@ -14,8 +15,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class AuthViewModel : ViewModel() {
-    private val authRepository = AuthRepository()
+class AuthViewModel(application: Application) : AndroidViewModel(application) {
+    private val authRepository = AuthRepository(application.applicationContext)
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
@@ -85,7 +86,7 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    fun getGoogleSignInClient(context: Context) = authRepository.getGoogleSignInClient(context)
+    fun getGoogleSignInClient(context: Context) = authRepository.getGoogleSignInClient()
 
     fun signUp(
         email: String,
@@ -169,8 +170,8 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    fun signOut(context: Context) {
-        authRepository.signOut(context)
+    fun signOut() {
+        authRepository.signOut()
         _currentUser.value = null
         _authState.value = AuthState.Idle
     }

@@ -1,157 +1,330 @@
-package com.epilabs.epiguard.data.repo
+package com.epilabs.epiguard.seizure
 
-import com.epilabs.epiguard.models.SeizureRecording
-import com.epilabs.epiguard.utils.Result
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
-import com.google.firebase.storage.FirebaseStorage
-import kotlinx.coroutines.tasks.await
-import java.io.File
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Log
+import com.epilabs.epiguard.data.repo.NotificationRepository
+import com.epilabs.epiguard.data.repo.PredictionLogRepository
+import com.epilabs.epiguard.network.TwilioApi
+import com.epilabs.epiguard.utils.TFLiteHelper
+import kotlinx.coroutines.*
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.coroutines.coroutineContext
 
-class SeizureRecordingRepository {
-    private val firestore = FirebaseFirestore.getInstance()
-    private val storage = FirebaseStorage.getInstance()
-    private val auth = FirebaseAuth.getInstance()
-
-    /**
-     * Save a seizure recording to Firestore
-     */
-    suspend fun saveSeizureRecording(recording: SeizureRecording): Result<String> {
-        return try {
-            val currentUser = auth.currentUser ?: return Result.Error("Not authenticated")
-
-            val recordingWithUserId = recording.copy(userId = currentUser.uid)
-            val docRef = firestore.collection("seizureRecordings")
-                .add(recordingWithUserId)
-                .await()
-
-            Result.Success(docRef.id)
-        } catch (e: Exception) {
-            Result.Error(e.message ?: "Failed to save seizure recording")
-        }
+/**
+ * Pure seizure detection class - Firebase version
+ * Handles stream processing and AI inference with Firebase storage
+ */
+class IpMjpegDetector(
+    private val context: Context,
+    private val userId: String, // Firebase UID (String)
+    private val streamUrl: String,
+    private val seizureConfidenceThreshold: Float = 0.80f,
+    private val consecutiveLimit: Int = 3,
+    private val inferenceIntervalMs: Long = 5_000L,
+    private val maxConnectRetries: Int = 3,
+    private val twilioToNumber: String,
+    private val twilioFromNumber: String,
+    private val twilioApi: TwilioApi = TwilioApi(),
+    private val notificationRepository: NotificationRepository = NotificationRepository(),
+    private val predictionLogRepository: PredictionLogRepository = PredictionLogRepository(),
+    // Callbacks for UI
+    private val onFrame: (Bitmap) -> Unit = {},
+    private val onPrediction: (timestampRange: String, label: String, confidence: Float) -> Unit = { _, _, _ -> },
+    private val onSeizureDetected: (String, String) -> Unit = { _, _ -> },
+    private val onStreamStatus: (String) -> Unit = {},
+    private val onDetectionStarted: () -> Unit = {},
+    private val onDetectionStopped: (Long) -> Unit = {}
+) {
+    companion object {
+        private const val TAG = "IpMjpegDetector"
     }
 
-    /**
-     * Upload video file to Firebase Storage
-     */
-    suspend fun uploadVideoFile(recordingId: String, videoFile: File): Result<String> {
-        return try {
-            val currentUser = auth.currentUser ?: return Result.Error("Not authenticated")
+    private val tflite = TFLiteHelper(
+        context = context,
+        predictionLogRepository = predictionLogRepository
+    )
 
-            val storageRef = storage.reference
-                .child("seizure_recordings")
-                .child(currentUser.uid)
-                .child("$recordingId.mp4")
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var streamJob: Job? = null
+    private var inferenceJob: Job? = null
 
-            val uploadTask = storageRef.putFile(android.net.Uri.fromFile(videoFile)).await()
-            val downloadUrl = uploadTask.storage.downloadUrl.await().toString()
+    private val latestFrameRef = AtomicReference<Bitmap?>(null)
 
-            // Update Firestore with video URL
-            firestore.collection("seizureRecordings")
-                .document(recordingId)
-                .update(mapOf(
-                    "videoUrl" to downloadUrl,
-                    "isProcessing" to false
-                ))
-                .await()
+    private var streaming = false
+    private var consecutiveSeizures = 0
+    private var detectionStartTime: Long = 0
+    private var detectionSessionId: String = ""
 
-            Result.Success(downloadUrl)
-        } catch (e: Exception) {
-            Result.Error(e.message ?: "Failed to upload video")
-        }
-    }
+    fun start() {
+        if (streaming) return
+        streaming = true
+        detectionStartTime = System.currentTimeMillis()
+        detectionSessionId = "session_${detectionStartTime}_${userId}"
+        onStreamStatus("Connecting")
+        consecutiveSeizures = 0
 
-    /**
-     * Get all seizure recordings for current user
-     */
-    suspend fun getSeizureRecordings(): Result<List<SeizureRecording>> {
-        return try {
-            val currentUser = auth.currentUser ?: return Result.Error("Not authenticated")
+        // Notify that detection started
+        onDetectionStarted()
 
-            val querySnapshot = firestore.collection("seizureRecordings")
-                .whereEqualTo("userId", currentUser.uid)
-                .orderBy("detectionTimestamp", Query.Direction.DESCENDING)
-                .get()
-                .await()
-
-            val recordings = querySnapshot.documents.mapNotNull { doc ->
-                doc.toObject(SeizureRecording::class.java)?.copy(id = doc.id)
+        // Send Firebase notification for detection start
+        scope.launch {
+            try {
+                notificationRepository.sendDetectionStartedNotification(streamUrl)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to send detection started notification: ${e.message}")
             }
-
-            Result.Success(recordings)
-        } catch (e: Exception) {
-            Result.Error(e.message ?: "Failed to get seizure recordings")
         }
+
+        streamJob = scope.launch(Dispatchers.IO) { streamLoop() }
+        inferenceJob = scope.launch(Dispatchers.Default) { inferenceLoop() }
     }
 
-    /**
-     * Get a specific seizure recording
-     */
-    suspend fun getSeizureRecording(recordingId: String): Result<SeizureRecording?> {
-        return try {
-            val doc = firestore.collection("seizureRecordings")
-                .document(recordingId)
-                .get()
-                .await()
+    fun stop() {
+        if (!streaming) return
 
-            val recording = doc.toObject(SeizureRecording::class.java)?.copy(id = doc.id)
-            Result.Success(recording)
-        } catch (e: Exception) {
-            Result.Error(e.message ?: "Failed to get seizure recording")
+        streaming = false
+        val detectionDuration = System.currentTimeMillis() - detectionStartTime
+
+        streamJob?.cancel(); streamJob = null
+        inferenceJob?.cancel(); inferenceJob = null
+        latestFrameRef.getAndSet(null)?.recycle()
+        tflite.close()
+        onStreamStatus("Stopped")
+
+        // Send Firebase notification for detection stop
+        scope.launch {
+            try {
+                notificationRepository.sendDetectionStoppedNotification(
+                    detectionDuration,
+                    detectionSessionId
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to send detection stopped notification: ${e.message}")
+            }
         }
+
+        // Notify that detection stopped with duration
+        onDetectionStopped(detectionDuration)
     }
 
-    /**
-     * Delete a seizure recording
-     */
-    suspend fun deleteSeizureRecording(recordingId: String): Result<Unit> {
-        return try {
-            val currentUser = auth.currentUser ?: return Result.Error("Not authenticated")
+    fun isRunning(): Boolean = streaming
 
-            // Get recording to find video URL
-            val doc = firestore.collection("seizureRecordings")
-                .document(recordingId)
-                .get()
-                .await()
-
-            val recording = doc.toObject(SeizureRecording::class.java)
-
-            // Delete video from Storage if exists
-            recording?.videoUrl?.let { url ->
-                try {
-                    storage.getReferenceFromUrl(url).delete().await()
-                } catch (e: Exception) {
-                    // Log but don't fail if video deletion fails
-                    android.util.Log.e("SeizureRecordingRepo", "Failed to delete video", e)
+    private suspend fun streamLoop() {
+        var retries = 0
+        while (coroutineContext.isActive && streaming && retries < maxConnectRetries) {
+            var conn: HttpURLConnection? = null
+            var ins: InputStream? = null
+            try {
+                onStreamStatus("Connecting (${retries + 1}/$maxConnectRetries)")
+                val url = URL(streamUrl)
+                conn = (url.openConnection() as HttpURLConnection).apply {
+                    readTimeout = 15_000
+                    connectTimeout = 10_000
+                    requestMethod = "GET"
+                    doInput = true
+                    connect()
                 }
+                ins = conn.inputStream
+                val reader = MjpegStreamReader(ins)
+                onStreamStatus("Streaming")
+
+                while (coroutineContext.isActive && streaming) {
+                    val bmp = reader.readFrameBitmap() ?: continue
+
+                    val uiCopy = bmp.copy(Bitmap.Config.ARGB_8888, false)
+                    val infCopy = bmp.copy(Bitmap.Config.ARGB_8888, false)
+                    bmp.recycle()
+
+                    withContext(Dispatchers.Main) { onFrame(uiCopy) }
+                    latestFrameRef.getAndSet(infCopy)?.let { old ->
+                        if (!old.isRecycled) old.recycle()
+                    }
+                    retries = 0
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Stream error: ${e.message}", e)
+                onStreamStatus("Error: ${e.message}")
+                retries++
+                if (retries >= maxConnectRetries) {
+                    onStreamStatus("Disconnected")
+                    streaming = false
+                    break
+                }
+                delay(1_000)
+            } finally {
+                try { ins?.close() } catch (_: Exception) {}
+                try { conn?.disconnect() } catch (_: Exception) {}
             }
-
-            // Delete Firestore document
-            firestore.collection("seizureRecordings")
-                .document(recordingId)
-                .delete()
-                .await()
-
-            Result.Success(Unit)
-        } catch (e: Exception) {
-            Result.Error(e.message ?: "Failed to delete seizure recording")
         }
     }
 
-    /**
-     * Update seizure recording notes
-     */
-    suspend fun updateNotes(recordingId: String, notes: String): Result<Unit> {
-        return try {
-            firestore.collection("seizureRecordings")
-                .document(recordingId)
-                .update("notes", notes)
-                .await()
+    private suspend fun inferenceLoop() {
+        val fmt = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        var nextTick = System.currentTimeMillis()
 
-            Result.Success(Unit)
-        } catch (e: Exception) {
-            Result.Error(e.message ?: "Failed to update notes")
+        while (coroutineContext.isActive && streaming) {
+            val windowEnd = System.currentTimeMillis()
+            val windowStart = windowEnd - inferenceIntervalMs
+            val tsRange = "${fmt.format(windowStart)} - ${fmt.format(windowEnd)}"
+
+            try {
+                val frame = latestFrameRef.getAndSet(null)
+                if (frame != null && !frame.isRecycled) {
+                    val probs = try {
+                        tflite.addFrameAndPredict(
+                            bitmap = frame,
+                            userId = userId,
+                            sessionId = detectionSessionId
+                        )
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Inference error: ${e.message}", e)
+                        null
+                    } finally {
+                        if (!frame.isRecycled) frame.recycle()
+                    }
+
+                    if (probs != null && probs.size >= 2) {
+                        val seizureP = probs[0]
+                        val notSeizureP = probs[1]
+                        val label = if (seizureP >= notSeizureP) "Seizure" else "Not Seizure"
+                        val conf = maxOf(seizureP, notSeizureP)
+
+                        withContext(Dispatchers.Main) { onPrediction(tsRange, label, conf) }
+
+                        if (label == "Seizure" && conf >= seizureConfidenceThreshold) {
+                            consecutiveSeizures++
+                            if (consecutiveSeizures >= consecutiveLimit) {
+                                consecutiveSeizures = 0
+                                triggerSeizureAlert(tsRange)
+                            }
+                        } else {
+                            consecutiveSeizures = 0
+                        }
+                    } else {
+                        Log.d(TAG, "No valid probabilities.")
+                    }
+                } else {
+                    Log.d(TAG, "No frame for inference.")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Inference loop error: ${e.message}", e)
+            }
+
+            nextTick += inferenceIntervalMs
+            val delayMs = (nextTick - System.currentTimeMillis()).coerceAtLeast(0)
+            delay(delayMs)
         }
+    }
+
+    private suspend fun triggerSeizureAlert(tsRange: String) {
+        val msg = "Seizure detected ($tsRange). Please check immediately."
+
+        // Save notification to Firebase via NotificationRepository
+        try {
+            notificationRepository.sendSeizureDetectedNotification(tsRange, msg)
+            Log.d(TAG, "Seizure notification sent to Firebase")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to send Firebase notification: ${e.message}", e)
+        }
+
+        // Send SMS via Twilio (only for seizure alerts, not start/stop)
+        val twilioSuccess = withContext(Dispatchers.IO) {
+            try {
+                twilioApi.sendSmsBlocking(
+                    to = twilioToNumber,
+                    from = twilioFromNumber,
+                    body = msg
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Twilio SMS failed: ${e.message}", e)
+                false
+            }
+        }
+
+        // Notify via callback (screen will handle UI updates)
+        onSeizureDetected(tsRange, msg)
+
+        Log.d(TAG, "Seizure alert triggered - Firebase: success, Twilio: $twilioSuccess")
+    }
+}
+
+/* MJPEG Reader - unchanged */
+private class MjpegStreamReader(private val input: InputStream) {
+    private val startMarker = byteArrayOf(0xFF.toByte(), 0xD8.toByte())
+    private val endMarker   = byteArrayOf(0xFF.toByte(), 0xD9.toByte())
+
+    fun readFrameBitmap(): Bitmap? {
+        var buffer: ByteArrayOutputStream? = null
+        var retries = 0
+        val maxRetries = 3
+
+        while (retries < maxRetries) {
+            try {
+                buffer = ByteArrayOutputStream()
+                val readBuf = ByteArray(4096)
+                var foundStart = false
+
+                while (true) {
+                    val r = input.read(readBuf)
+                    if (r <= 0) {
+                        buffer.close()
+                        return null
+                    }
+                    val chunk = readBuf.copyOf(r)
+                    if (!foundStart) {
+                        val si = indexOf(chunk, startMarker)
+                        if (si >= 0) {
+                            buffer.write(chunk, si, chunk.size - si)
+                            foundStart = true
+                            val ei = indexOf(chunk, endMarker, si)
+                            if (ei >= 0) {
+                                val len = ei + endMarker.size - si
+                                val frameBytes = chunk.copyOfRange(si, si + len)
+                                buffer.close()
+                                return BitmapFactory.decodeByteArray(frameBytes, 0, frameBytes.size)
+                            }
+                        }
+                    } else {
+                        val ei = indexOf(chunk, endMarker)
+                        if (ei >= 0) {
+                            buffer.write(chunk, 0, ei + endMarker.size)
+                            val frameBytes = buffer.toByteArray()
+                            buffer.close()
+                            return BitmapFactory.decodeByteArray(frameBytes, 0, frameBytes.size)
+                        } else {
+                            buffer.write(chunk)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                retries++
+                try { buffer?.close() } catch (_: Exception) {}
+                if (retries < maxRetries) {
+                    Thread.sleep(100)
+                    continue
+                }
+                Log.e("MjpegStreamReader", "Failed frame read: ${e.message}", e)
+                return null
+            }
+        }
+        return null
+    }
+
+    private fun indexOf(data: ByteArray, pattern: ByteArray, startOffset: Int = 0): Int {
+        outer@ for (i in startOffset..data.size - pattern.size) {
+            for (j in pattern.indices) {
+                if (data[i + j] != pattern[j]) continue@outer
+            }
+            return i
+        }
+        return -1
     }
 }

@@ -4,15 +4,25 @@ import android.content.Context
 import android.content.SharedPreferences
 
 /**
- * Helper class for managing user preferences for seizure detection settings and app state
+ * Helper class for managing user preferences for seizure detection settings,
+ * onboarding state, and user session persistence
  */
-class PreferencesHelper(context: Context) {
+class PreferencesHelper(private val context: Context) {
+
     companion object {
         private const val PREFS_NAME = "epilabs_seizure_settings"
+
+        // Seizure detection keys
         private const val KEY_CONFIDENCE_THRESHOLD = "confidence_threshold"
         private const val KEY_CONSECUTIVE_LIMIT = "consecutive_limit"
         private const val KEY_INFERENCE_INTERVAL = "inference_interval_ms"
+
+        // App state keys
         private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
+
+        // 🔐 Session keys
+        private const val KEY_IS_LOGGED_IN = "is_logged_in"
+        private const val KEY_USER_ID = "user_id"
 
         // Default values
         private const val DEFAULT_CONFIDENCE_THRESHOLD = 0.80f
@@ -20,9 +30,38 @@ class PreferencesHelper(context: Context) {
         private const val DEFAULT_INFERENCE_INTERVAL = 5000L // 5 seconds
     }
 
-    private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences =
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    // ─────────────────────────────────────────────
+    // 🔐 SESSION METHODS (NEW)
+    // ─────────────────────────────────────────────
 
-    // Onboarding Methods
+    fun saveUserSession(userId: String) {
+        prefs.edit()
+            .putBoolean(KEY_IS_LOGGED_IN, true)
+            .putString(KEY_USER_ID, userId)
+            .apply()
+    }
+
+    fun clearUserSession() {
+        prefs.edit()
+            .remove(KEY_IS_LOGGED_IN)
+            .remove(KEY_USER_ID)
+            .apply()
+    }
+
+    fun isUserLoggedIn(): Boolean {
+        return prefs.getBoolean(KEY_IS_LOGGED_IN, false)
+    }
+
+    fun getLoggedInUserId(): String? {
+        return prefs.getString(KEY_USER_ID, null)
+    }
+
+    // ─────────────────────────────────────────────
+    // 🚀 ONBOARDING METHODS
+    // ─────────────────────────────────────────────
+
     fun hasCompletedOnboarding(): Boolean {
         return prefs.getBoolean(KEY_ONBOARDING_COMPLETED, false)
     }
@@ -31,7 +70,10 @@ class PreferencesHelper(context: Context) {
         prefs.edit().putBoolean(KEY_ONBOARDING_COMPLETED, completed).apply()
     }
 
-    // Confidence Threshold (0.5 - 0.95)
+    // ─────────────────────────────────────────────
+    // ⚙️ SEIZURE DETECTION SETTINGS
+    // ─────────────────────────────────────────────
+
     fun getConfidenceThreshold(): Float {
         return prefs.getFloat(KEY_CONFIDENCE_THRESHOLD, DEFAULT_CONFIDENCE_THRESHOLD)
     }
@@ -40,7 +82,6 @@ class PreferencesHelper(context: Context) {
         prefs.edit().putFloat(KEY_CONFIDENCE_THRESHOLD, threshold).apply()
     }
 
-    // Consecutive Limit (1 - 8)
     fun getConsecutiveLimit(): Int {
         return prefs.getInt(KEY_CONSECUTIVE_LIMIT, DEFAULT_CONSECUTIVE_LIMIT)
     }
@@ -49,7 +90,6 @@ class PreferencesHelper(context: Context) {
         prefs.edit().putInt(KEY_CONSECUTIVE_LIMIT, limit).apply()
     }
 
-    // Inference Interval in milliseconds (2000 - 10000)
     fun getInferenceInterval(): Long {
         return prefs.getLong(KEY_INFERENCE_INTERVAL, DEFAULT_INFERENCE_INTERVAL)
     }
@@ -58,7 +98,10 @@ class PreferencesHelper(context: Context) {
         prefs.edit().putLong(KEY_INFERENCE_INTERVAL, intervalMs).apply()
     }
 
-    // Get all settings as a data class for easy passing
+    // ─────────────────────────────────────────────
+    // 📦 HELPERS
+    // ─────────────────────────────────────────────
+
     fun getAllSettings(): SeizureDetectionSettings {
         return SeizureDetectionSettings(
             confidenceThreshold = getConfidenceThreshold(),
@@ -67,7 +110,6 @@ class PreferencesHelper(context: Context) {
         )
     }
 
-    // Reset seizure detection settings to defaults (keeps onboarding state)
     fun resetSeizureSettingsToDefaults() {
         prefs.edit()
             .remove(KEY_CONFIDENCE_THRESHOLD)
@@ -76,7 +118,6 @@ class PreferencesHelper(context: Context) {
             .apply()
     }
 
-    // Reset ALL preferences to defaults (including onboarding)
     fun resetAllToDefaults() {
         prefs.edit().clear().apply()
     }
@@ -90,7 +131,6 @@ data class SeizureDetectionSettings(
     val consecutiveLimit: Int,
     val inferenceIntervalMs: Long
 ) {
-    // Helper to get total delay in seconds
     val totalDelaySeconds: Int
         get() = (consecutiveLimit * (inferenceIntervalMs / 1000)).toInt()
 }

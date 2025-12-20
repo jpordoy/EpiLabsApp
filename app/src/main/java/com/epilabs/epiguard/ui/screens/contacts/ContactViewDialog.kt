@@ -1,32 +1,28 @@
 package com.epilabs.epiguard.ui.screens.contacts
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.epilabs.epiguard.models.Contact
+
+// Hardcoded colors from design
+private val DarkBackground = Color(0xFF11222E)
+private val TextFieldBorder = Color(0xFF2F414F)
+private val ButtonBlue = Color(0xFF0163E1)
+private val TextPrimary = Color(0xFFDECDCD)
+private val TextSecondary = Color(0xFF8B9AA8)
+private val AccentGreen = Color(0xFF4CAF50)
 
 @Composable
 fun ContactViewDialog(
@@ -36,6 +32,7 @@ fun ContactViewDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = DarkBackground,
         title = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -44,13 +41,15 @@ fun ContactViewDialog(
             ) {
                 Text(
                     text = "Contact Details",
-                    style = MaterialTheme.typography.headlineSmall
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
                 )
                 IconButton(onClick = onEdit) {
                     Icon(
                         Icons.Default.Edit,
                         contentDescription = "Edit Contact",
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = ButtonBlue
                     )
                 }
             }
@@ -79,7 +78,10 @@ fun ContactViewDialog(
 
                 if (contact.isSystemUser) {
                     Card(
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = DarkBackground),
+                        shape = RoundedCornerShape(12.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, AccentGreen)
                     ) {
                         Row(
                             modifier = Modifier
@@ -90,14 +92,14 @@ fun ContactViewDialog(
                             Icon(
                                 Icons.Default.Person,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = AccentGreen,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.padding(8.dp))
                             Text(
                                 text = "EpiGuard User",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 15.sp,
+                                color = AccentGreen,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -106,8 +108,15 @@ fun ContactViewDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close")
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ButtonBlue,
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(40.dp)
+            ) {
+                Text("Close", fontSize = 15.sp)
             }
         }
     )
@@ -122,8 +131,9 @@ private fun ContactDetailItem(
     Column {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            fontSize = 13.sp,
+            color = TextSecondary,
+            fontWeight = FontWeight.Medium
         )
         Spacer(modifier = Modifier.height(4.dp))
         Row(
@@ -132,14 +142,15 @@ private fun ContactDetailItem(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = TextSecondary,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.padding(8.dp))
             Text(
                 text = value,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Medium,
+                color = TextPrimary
             )
         }
     }

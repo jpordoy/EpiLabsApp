@@ -15,13 +15,28 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.epilabs.epiguard.ui.nav.Destinations
 import android.util.Log
+import androidx.compose.ui.graphics.Color
+
+// Hardcoded colors from design
+private val DarkBackground = Color(0xFF11222E)
+private val TextFieldBorder = Color(0xFF2F414F)
+private val ButtonBlue = Color(0xFF0163E1)
+private val TextFieldPlaceholder = Color(0xFF606E77)
+private val TextPrimary = Color(0xFFDECDCD)
+private val TextSecondary = Color(0xFF8B9AA8)
+private val AccentGreen = Color(0xFF4CAF50)
+private val AccentOrange = Color(0xFFFF9800)
+private val AccentPurple = Color(0xFF9C27B0)
+private val UnreadIndicator = Color(0xFF0163E1)
 
 @Composable
 fun BottomNav(navController: NavController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    NavigationBar {
+    NavigationBar(
+        containerColor = DarkBackground
+    ) {
         NavigationBarItem(
             selected = currentRoute == Destinations.Dashboard.route,
             onClick = {
@@ -35,8 +50,19 @@ fun BottomNav(navController: NavController) {
                     }
                 }
             },
-            icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-            label = { Text("Home") }
+            icon = {
+                Icon(
+                    Icons.Default.Home,
+                    contentDescription = "Home",
+                    tint = TextFieldPlaceholder
+                )
+            },
+            label = {
+                Text(
+                    "Home",
+                    color = TextFieldPlaceholder
+                )
+            }
         )
 
         NavigationBarItem(
@@ -50,8 +76,19 @@ fun BottomNav(navController: NavController) {
                     }
                 }
             },
-            icon = { Icon(Icons.Default.Visibility, contentDescription = "Detection") },
-            label = { Text("Detection") }
+            icon = {
+                Icon(
+                    Icons.Default.Visibility,
+                    contentDescription = "Detection",
+                    tint = TextFieldPlaceholder
+                )
+            },
+            label = {
+                Text(
+                    "Detection",
+                    color = TextFieldPlaceholder
+                )
+            }
         )
 
         NavigationBarItem(
@@ -65,8 +102,19 @@ fun BottomNav(navController: NavController) {
                     }
                 }
             },
-            icon = { Icon(Icons.Default.Contacts, contentDescription = "Contacts") },
-            label = { Text("Contacts") }
+            icon = {
+                Icon(
+                    Icons.Default.Contacts,
+                    contentDescription = "Contacts",
+                    tint = TextFieldPlaceholder
+                )
+            },
+            label = {
+                Text(
+                    "Contacts",
+                    color = TextFieldPlaceholder
+                )
+            }
         )
 
         NavigationBarItem(
@@ -80,8 +128,19 @@ fun BottomNav(navController: NavController) {
                     }
                 }
             },
-            icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-            label = { Text("Settings") }
+            icon = {
+                Icon(
+                    Icons.Default.Settings,
+                    contentDescription = "Settings",
+                    tint = TextFieldPlaceholder
+                )
+            },
+            label = {
+                Text(
+                    "Settings",
+                    color = TextFieldPlaceholder
+                )
+            }
         )
     }
 }

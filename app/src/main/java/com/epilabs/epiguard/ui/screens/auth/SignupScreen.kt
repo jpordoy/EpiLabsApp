@@ -17,10 +17,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -32,6 +35,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -43,6 +47,7 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import com.epilabs.epiguard.R
 import com.epilabs.epiguard.ui.components.ErrorDialog
 import com.epilabs.epiguard.ui.components.LoadingDialog
 import com.epilabs.epiguard.ui.nav.Destinations
@@ -82,7 +87,7 @@ fun SignupScreen(
         }
     }
 
-    var currentStep by remember { mutableStateOf(1) }
+    var currentStep by remember { mutableIntStateOf(1) }
     val totalSteps = 3
     val progress by animateFloatAsState(
         targetValue = currentStep / totalSteps.toFloat(),
@@ -139,6 +144,7 @@ fun SignupScreen(
         }
     }
 
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -150,6 +156,18 @@ fun SignupScreen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(modifier = Modifier.height(100.dp))  // Add here
+
+            Image(
+                painter = painterResource(id = R.drawable.logos),
+                contentDescription = "Logo",
+                modifier = Modifier
+                    .size(50.dp)
+                    .padding(bottom = 1.dp)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -161,7 +179,7 @@ fun SignupScreen(
                         onClick = { currentStep-- }
                     ) {
                         Icon(
-                            Icons.Default.ArrowBack,
+                            Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = TextPrimary
                         )
@@ -591,8 +609,13 @@ private fun PersonalInfoStep(
     onCreateAccount: () -> Unit
 ) {
     val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+    val scrollState = rememberScrollState()
 
-    Column {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(scrollState)
+    ) {
         // Profile Image
         Box(
             modifier = Modifier
