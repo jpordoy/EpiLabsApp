@@ -63,7 +63,7 @@ fun TopBar(
 
         // 🔹 LEFT — Company logo
         Image(
-            painter = painterResource(id = R.drawable.logos), // your PNG logo
+            painter = painterResource(id = R.drawable.newlogo), // your PNG logo
             contentDescription = "Company Logo",
             modifier = Modifier.height(50.dp)
 

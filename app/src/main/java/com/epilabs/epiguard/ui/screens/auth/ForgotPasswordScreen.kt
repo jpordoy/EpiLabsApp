@@ -1,10 +1,13 @@
 package com.epilabs.epiguard.ui.screens.auth
 
 import android.app.Activity
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.*
@@ -14,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -22,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.epilabs.epiguard.R
 import com.epilabs.epiguard.ui.components.ErrorDialog
 import com.epilabs.epiguard.ui.components.LoadingDialog
 import com.epilabs.epiguard.ui.viewmodels.AuthViewModel
@@ -66,6 +71,26 @@ fun ForgotPasswordScreenContent(
             .fillMaxSize()
             .background(DarkBackground)
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(100.dp))
+
+            // Logo - now matches login screen exactly
+            Image(
+                painter = painterResource(id = R.drawable.newlogo),
+                contentDescription = "Logo",
+                modifier = Modifier
+                    .size(96.dp)
+                    .padding(bottom = 30.dp)
+            )
+
+            Spacer(modifier = Modifier.height(40.dp))
+        }
         Column(
             modifier = modifier
                 .fillMaxSize()

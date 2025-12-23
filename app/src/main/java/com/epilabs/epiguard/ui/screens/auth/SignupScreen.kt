@@ -153,20 +153,22 @@ fun SignupScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(horizontal = 20.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(100.dp))  // Add here
+            Spacer(modifier = Modifier.height(100.dp))
 
+            // Logo - now matches login screen exactly
             Image(
-                painter = painterResource(id = R.drawable.logos),
+                painter = painterResource(id = R.drawable.newlogo),
                 contentDescription = "Logo",
                 modifier = Modifier
-                    .size(50.dp)
-                    .padding(bottom = 1.dp)
+                    .size(96.dp)
+                    .padding(bottom = 30.dp)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
             // Header
             Row(
